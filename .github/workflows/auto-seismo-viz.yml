@@ -19,11 +19,17 @@ jobs:
       - name: List files in the repository
         run: |
           ls ${{ github.workspace }} 
-      - name: Archive production artifacts
+      - name: Archive everything in repo
         uses: actions/upload-artifact@v3
+        id: archive
         with:
-          name: Archive everything in repo
-          path: ./
+          name: Vizuals
+          path: ./*.png ./*.mp4
           retention-days: 1
-      - run: echo "🎁 The content of ${{ github.repository }} has been archived as artifact for 1 days."
+      - name: The archiving step has failed
+        if: ${{ failure() }}
+        run: echo "📭 There is no visual to archive."
+      - name: The archiving step was successful
+        if: ${{ steps.archive.conclusion != 'failure' }}
+        run: echo "🎁 The content of ${{ github.repository }} has been archived as artifact for 1 days."
       - run: echo "🍏 This job's status is ${{ job.status }}."
