@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
   push: {branches: ["master", "main"]}
 jobs:
-  Explore-GitHub-Actions:
+  Viz-EEW-UNA:
     runs-on: ubuntu-latest
     steps:
       - run: echo "🎉 The job was automatically triggered by a ${{ github.event_name }} event."
@@ -24,12 +24,12 @@ jobs:
           python -m pip install --requirement ${{ github.workspace }}/requirements.txt
       - name: Run the main program
         run: |
-          python ${{ github.workspace }}/seismo-viz.py
+          python ${{ github.workspace }}/seismo-viz.py fdsnws_uri=${{ secrets.UNA_EEW_URL }} minmagnitude=4
       - name: Archive all visuals in workspace
         uses: actions/upload-artifact@v3
         id: archive
         with:
-          name: Vizuals
+          name: Vizuals-UNA
           path: |
             ${{ github.workspace }}/*.png 
             ${{ github.workspace }}/*.mp4

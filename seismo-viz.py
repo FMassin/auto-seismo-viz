@@ -4,11 +4,12 @@ from obspy.clients.fdsn import Client
 from obspy.core import UTCDateTime
 from obspy.clients.fdsn.header import FDSNNoDataException
 from sys import argv
+from re import sub
 
 def main(fdsnws_uri='USGS',
          ndays=4,
          nseconds=15*60*60,
-         areas={'global':{'minmagnitude':7}},
+         minmagnitude=7,
          **kwargs):
 
     nsecongs_ago = UTCDateTime.now()-nseconds
@@ -16,12 +17,13 @@ def main(fdsnws_uri='USGS',
 
     ## The catalog in last N days
     catalog_last_ndays = Catalog()
-    for i, (area, options) in enumerate(areas.items()):
-        options['starttime'] = UTCDateTime.now()-ndays*24*60*60
-        try:
-            catalog_last_ndays += myclient.get_events(**options)
-        except FDSNNoDataException:
-            print('No event found in', fdsnws_uri, 'with', options)
+    options = kwargs
+    options['minmagnitude'] = minmagnitude
+    options['starttime'] = UTCDateTime.now()-ndays*24*60*60
+    try:
+        catalog_last_ndays += myclient.get_events(**options)
+    except FDSNNoDataException:
+        print('No event found with', options)
 
     print('Found in the last %d days:'%ndays)    
     print(catalog_last_ndays.__str__(print_all=True))
@@ -34,6 +36,8 @@ def main(fdsnws_uri='USGS',
                 eventid = str(e.resource_id).split("?")[-1]
                 if '&' in eventid:
                     eventid=[p.split('=')[-1] for p in eventid.split('&') if 'eventid' in p][0]
+                
+                eventid = eventid.split("/")[-1]
 
                 try:
                     allsolutions_noarrivals = myclient.get_events(eventid=eventid,
@@ -53,7 +57,7 @@ def main(fdsnws_uri='USGS',
                         prefsolution_witharrivals = allsolutions_noarrivals
                         print('Cannot use includearrivals but event %s should be updated'%eventid)
                     except FDSNNoDataException:
-                        print('No event found in', fdsnws_uri, 'with eventid =',eventid)
+                        print('No event found with eventid =',eventid)
                         break
 
                 catalog_updated_last_nseconds += prefsolution_witharrivals[0]
@@ -66,8 +70,8 @@ def main(fdsnws_uri='USGS',
 
 if __name__ == '__main__':
 
-    args={ arg.split('=')[0]:arg.split('=')[1] for arg in argv if "=" in arg}
+    args={ arg.split('=')[0]:arg.split('=')[1] for arg in argv[1:] if "=" in arg}
     print('Arguments provided:')
-    print('\n'.join(['%s: %s'%(arg,args[arg]) for arg in args]))
+    print(sub('/.*:.*/','/*hiden*:*hiden*/','\n'.join(['%s: %s'%(arg,args[arg]) for arg in args])))
 
     main(**args)
