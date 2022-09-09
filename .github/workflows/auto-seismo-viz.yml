@@ -26,11 +26,5 @@ jobs:
           name: Vizuals
           path: ./*.png ./*.mp4
           retention-days: 1
-          if-no-files-found: error
-      - name: The archiving step has failed
-        if: ${{ failure() }}
-        run: echo "📭 There is no visual to archive."
-      - name: The archiving step was successful
-        if: ${{ steps.archive.conclusion != 'failure' }}
-        run: echo "🎁 The content of ${{ github.repository }} has been archived as artifact for 1 days."
+      - run: echo "🎁 The visuals from ${{ github.repository }} have been archived as artifact for 1 days."
       - run: echo "🍏 This job's status is ${{ job.status }}."
