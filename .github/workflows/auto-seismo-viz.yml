@@ -26,6 +26,7 @@ jobs:
           name: Vizuals
           path: ./*.png ./*.mp4
           retention-days: 1
+          if-no-files-found: error
       - name: The archiving step has failed
         if: ${{ failure() }}
         run: echo "📭 There is no visual to archive."
