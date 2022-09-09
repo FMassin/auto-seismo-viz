@@ -7,7 +7,7 @@ from sys import argv
 def main(fdsnws_uri='USGS',
          ndays=4,
          nseconds=15*60*60,
-         areas={'global':{'minmagnitude':5}},
+         areas={'global':{'minmagnitude':7}},
          **kwargs):
 
     nsecongs_ago = UTCDateTime.now()-nseconds
