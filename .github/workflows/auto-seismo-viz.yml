@@ -1,5 +1,10 @@
 name: Automated seismological vizualisation 
-on: [push]
+on:
+  # Schedule updates (each 15 minutes)
+  schedule: [{cron: "*/15 * * * *"}]
+  # Lines below let you run workflow manually and on each commit
+  workflow_dispatch:
+  push: {branches: ["master", "main"]}
 jobs:
   Explore-GitHub-Actions:
     runs-on: ubuntu-latest
@@ -13,5 +18,12 @@ jobs:
       - run: echo "🖥️ The workflow is now ready to test your code on the runner."
       - name: List files in the repository
         run: |
-          ls ${{ github.workspace }}
+          ls ${{ github.workspace }} 
+      - name: Archive production artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: Archive everything in repo
+          path: ./
+          retention-days: 1
+      - run: echo "🎁 The content of ${{ github.repository }} has been archived as artifact for 1 days."
       - run: echo "🍏 This job's status is ${{ job.status }}."
