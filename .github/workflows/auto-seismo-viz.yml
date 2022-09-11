@@ -24,12 +24,12 @@ jobs:
           python -m pip install --requirement ${{ github.workspace }}/requirements.txt
       - name: Run the main program
         run: |
-          python ${{ github.workspace }}/seismo-viz.py catalog_uri='USGS',${{ secrets.UNA_EEW_URL }} minmagnitude=4 debug=1
+          python ${{ github.workspace }}/seismo-viz.py catalog_uri='USGS',${{ secrets.UNA_EEW_URL }} minmagnitude=4 longitude=-84 latitude=9.5 maxradius=3 debug=1
       - name: Archive all data and visuals in workspace
         uses: actions/upload-artifact@v3
         id: archive
         with:
-          name: Vizuals-UNA
+          name: Data-and-Vizuals-UNA
           path: |
             ${{ github.workspace }}/data/*ml
             ${{ github.workspace }}/data/*seed

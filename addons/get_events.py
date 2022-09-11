@@ -328,7 +328,7 @@ def get_events_updatedafter(self,
                 ## Get additional solution form another server if any provided
                 for client in self[1:]:
                     if debug:
-                        print('Adding more event info with',client)
+                        print('Adding more event info...')#with',client)
                     catalog_updated_last_nseconds = match_events(catalog_updated_last_nseconds,
                                                                 client=client,
                                                                 lastmagpref=False,
