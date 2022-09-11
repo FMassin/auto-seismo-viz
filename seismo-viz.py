@@ -59,12 +59,14 @@ def main(catalog_uri='USGS',
                                       updated_after=updated_after,
                                       **get_events_wargs)
 
-    ## Make output dirs
-    if not os.path.exists("data"):
-        os.makedirs("data")
+    
 
     for event in catalog:
         
+        ## Make output dirs
+        if not os.path.exists("data"):
+            os.makedirs("data")
+            
         ## Save Event xml
         event.write('data/%s.quakeml'%str(event.resource_id).split('/')[-1],
                     format='quakeml')
