@@ -47,6 +47,12 @@ def main(catalog_uri='USGS',
 
     updated_after = UTCDateTime.now()-nseconds
     get_events_wargs['starttime'] = UTCDateTime.now()-ndays*24*60*60
+    if 'longitude' in get_events_wargs :
+        get_events_wargs['longitude'] = float(get_events_wargs['longitude'])
+    if 'latitude' in get_events_wargs :
+        get_events_wargs['latitude'] = float(get_events_wargs['latitude'])
+    if 'maxradius' in get_events_wargs :
+        get_events_wargs['maxradius'] = float(get_events_wargs['maxradius'])
 
     catalog = get_events_updatedafter(catalog_clients,
                                       updated_after=updated_after,
