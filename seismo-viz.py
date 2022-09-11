@@ -3,6 +3,7 @@ from obspy.clients.fdsn import Client
 from obspy.core import UTCDateTime
 from sys import argv
 from re import sub
+import os
 
 from addons.get_events import get_events_updatedafter
 
@@ -57,6 +58,10 @@ def main(catalog_uri='USGS',
     catalog = get_events_updatedafter(catalog_clients,
                                       updated_after=updated_after,
                                       **get_events_wargs)
+
+    ## Make output dirs
+    if not os.path.exists("data"):
+        os.makedirs("data")
 
     for event in catalog:
         
