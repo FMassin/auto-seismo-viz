@@ -278,8 +278,6 @@ def get_events_waveforms(self,
                                       longitude=origin.longitude,
                                       maxradius=endafter*6/111,
                                       **kwargs)
-        inventory = inventory.remove(location="99")
-        inventory = inventory.remove(location="89")
         inventory = fixrespunit(inventory,debug=debug)
         eventinventories += [inventory]
 
@@ -288,6 +286,14 @@ def get_events_waveforms(self,
                                      **inv2bulkargs)
         stream = self.get_waveforms_bulk(bulk,**bulkargs)
 
+        # Remove traces without response
+        for tr in stream:
+            try:
+                inventory.get_response(tr.id, tr.stats.starttime)
+            except:
+                print('Cannot find response for',tr)
+                stream.remove(tr)
+        
         # Improve waveforms attributes
         if debug:
             print('Attaching response')

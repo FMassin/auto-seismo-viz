@@ -25,7 +25,7 @@ jobs:
       - name: Run the main program
         id: seismoviz
         run: |
-          python ${{ github.workspace }}/seismo-viz.py catalog_uri=USGS,${{ secrets.MARN_EEW_URL }} minmagnitude=4 longitude=-89 latitude=13.6 maxradius=2 debug=1      
+          python ${{ github.workspace }}/seismo-viz.py catalog_uri=USGS,${{ secrets.MARN_EEW_URL }} minmagnitude=4 longitude=-89 latitude=13.6 maxradius=2 debug=1 nseconds=9999999999 ndays=9   
       - if: steps.seismoviz.outcome == 'success'
         run: echo "🖥️ The code in seismo-viz.py from ${{ github.repository }} exited successfully."
       
