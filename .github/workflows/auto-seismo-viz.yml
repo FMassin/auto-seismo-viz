@@ -37,7 +37,12 @@ jobs:
             ${{ github.workspace }}/*.png 
             ${{ github.workspace }}/*.mp4
           retention-days: 1
+          if-no-files-found: error
+      - name: Log success 
+        if: steps.archive.outcome == 'success'
+        run: echo "🎁 The data and visuals from ${{ github.workspace }} are archived as an artifact for 1 days."
       - name: Send mail
+        if: steps.archive.outcome == 'success'
         uses: dawidd6/action-send-mail@v3
         with:
           # Specify connection via URL (replaces server_address, server_port, secure,
@@ -65,7 +70,7 @@ jobs:
           # Required sender full name (address can be skipped):
           from: ${{ github.repository }} # Luke Skywalker # <user@example.com>
           # Optional plain body:
-          body: Job of ${{github.repository}} for MARN completed successfully!
+          body: Event processing of ${{github.repository}} for MARN completed successfully!
           # Optional HTML body read from file:
           #html_body: file://README.html
           # Optional carbon copy recipients:
@@ -81,11 +86,9 @@ jobs:
           # Optional converting Markdown to HTML (set content_type to text/html too):
           #convert_markdown: true
           # Optional attachments:
-          #attachments: attachments.zip,git.diff,./dist/static/*.js
+          attachments: ${{ github.workspace }}/*.png
           # Optional priority: 'high', 'normal' (default) or 'low'
           priority: high
-
-      - run: echo "🎁 The visuals from ${{ github.workspace }} are archived as an artifact for 1 days."
       - run: echo "🍏 This job's status is ${{ job.status }}."
 
 
