@@ -101,7 +101,6 @@ def inventory2bulkrequest(self,
             print("%s.%s.%s.%s [%s, %s]"%bulk[-1],'Ot+%.3g deg'%epr)
     return bulk
 
-
 def remove_response(eventstreams,
                     outputs=['acc'],#['acc','vel','disp']
                     pre_filt=[0.1, 0.33, 45, 50],
@@ -226,7 +225,6 @@ def remove_sensitivity(eventstreams,
             eventstreams[output].filter(**filters[output])            
             
     return eventstreams
-
 
 def get_events_waveforms(self,
                          catalog,

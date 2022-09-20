@@ -3,7 +3,43 @@ from gettext import Catalog
 import matplotlib.pyplot,matplotlib.colors,matplotlib.patheffects,numpy
 from obspy.taup import TauPyModel
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
+from obspy.core.stream import Stream, Trace
+from obspy.core import UTCDateTime
+from obspy.geodetics.base import gps2dist_azimuth
+gold= (1 + 5 ** 0.5) / 2.
 
+def lineMagnitude(x1, y1, x2, y2):
+    lineMagnitude = numpy.sqrt(numpy.power((x2 - x1), 2)+ numpy.power((y2 - y1), 2))
+    return lineMagnitude
+
+#Calc minimum distance from a point and a line segment (i.e. consecutive vertices in a polyline).
+def DistancePointLine(px, py, x1, y1, x2, y2):
+    #http://local.wasp.uwa.edu.au/~pbourke/geometry/pointline/source.vba
+    LineMag = lineMagnitude(x1, y1, x2, y2)
+
+    if LineMag < 0.00000001:
+        DistancePointLine = numpy.sqrt(numpy.power((px - x1), 2)+ numpy.power((py - y1), 2)) # 9999
+        return DistancePointLine
+
+    u1 = (((px - x1) * (x2 - x1)) + ((py - y1) * (y2 - y1)))
+    u = u1 / (LineMag * LineMag)
+
+    if (u < 0.00001) or (u > 1):
+        #// closest point does not fall within the line segment, take the shorter distance
+        #// to an endpoint
+        ix = lineMagnitude(px, py, x1, y1)
+        iy = lineMagnitude(px, py, x2, y2)
+        if ix > iy:
+            DistancePointLine = iy
+        else:
+            DistancePointLine = ix
+    else:
+        # Intersecting point is on the line, use the formula
+        ix = x1 + u * (x2 - x1)
+        iy = y1 + u * (y2 - y1)
+        DistancePointLine = lineMagnitude(px, py, ix, iy)
+
+    return DistancePointLine
 
 def tracedistance(tr,
                   inventory,
@@ -26,13 +62,11 @@ def tracedistance(tr,
                                         station=tr.stats.station)[0][0]
             except:
                 return 9999,9999
-    epr = obspy_addons.haversine(origin.longitude,
-                                   origin.latitude,
-                                   station.longitude,
-                                   station.latitude)/1000
+    epr = gps2dist_azimuth(origin.latitude,origin.longitude,
+                           station.latitude,station.longitude)[0]/1000
     if optline is not None:
-        epr = obspy_addons.DistancePointLine(station.longitude,
-                                                 station.latitude,
+        epr = DistancePointLine(station.longitude,
+                                station.latitude,
                                                  **optline)
         epr = epr*onedeg
 
@@ -78,7 +112,7 @@ def get_velmodel_correction(event,
     for phase in 'ps':
         if phase not in modelresidual:
             modelresidual[phase]=0
-    print("model residual:",modelresidual)
+    #print("model residual:",modelresidual)
     return modelresidual,model
 
 def ploteqdata(self, #eqdata[output].select(channel='*b')
@@ -91,15 +125,25 @@ def ploteqdata(self, #eqdata[output].select(channel='*b')
                mtypes={'MVS':'C2','Mfd':'C1'},
                ax=None,
                lim=30,
+               combine='both',
                nopgalabel=False,
                nostationlabel=False,
                ):
     if ax is None:
-        ax = matplotlib.pyplot.figure().gca()
+        w, h = matplotlib.figure.figaspect(gold) # gold aspect
+        ax = matplotlib.pyplot.figure(figsize=(w*gold, h*gold)).add_axes([0.1, 0.1, 0.7, 0.7]) # bigger by factor of gold
+
+        #size = ax.figure.get_size_inches()
+        #sax.figure.set_size_inches([size[0],size[0]*gold])
+        #ax.set_position(ax.get_position().shrunk_to_aspect(gold))
+        #axx.set_position(axx.get_position().shrunk_to_aspect(gold))
+
     if hasattr(catalog,'events'):
         event = catalog[0]
     else:
         event = catalog
+    axx=ax.twinx()
+    #ax.sharey(axx)
 
     time = event.preferred_origin().time
     depth = event.preferred_origin().depth/1000
@@ -113,10 +157,8 @@ def ploteqdata(self, #eqdata[output].select(channel='*b')
         vmax+=list(tr.data)
     for tr in self:
         vmin+=list(tr.data[:99])
-    print(vmin,vmax)
     vmin=numpy.nanpercentile(vmin,84)
     vmax=numpy.nanpercentile(vmax,100)*1.1
-    print(vmin,vmax)
     norm=matplotlib.colors.LogNorm(vmin=vmin*gain,
                                    vmax=vmax*gain)
     cmap=matplotlib.pyplot.get_cmap(cmap)
@@ -169,12 +211,23 @@ def ploteqdata(self, #eqdata[output].select(channel='*b')
             if nopgalabel:
                 data_label='  %s'%(tr.id)
             if not nopgalabel or not nostationlabel:
-                ax.text(x,
+                if True:
+                    axx.annotate(data_label, 
+                                  xy=(x, epr), xycoords="data",
+                                  ha='left',va='center',
+                                  size='xx-small',
+                                  fontweight='semibold',
+                                  path_effects=label_path_effects,
+                                  zorder=5+y[0]
+                                  #bbox=dict(boxstyle="round", fc="w")
+                                  )
+                else:
+                    ax.text(x,
                         epr,#r,tr.data[imax],
                         data_label,#),#c[imax]
                         ha='left',
                         va='center',
-                        clip_on=True,
+                        clip_on=False,
                         size='xx-small',
                         fontweight='semibold',
                         path_effects=label_path_effects,
@@ -189,13 +242,14 @@ def ploteqdata(self, #eqdata[output].select(channel='*b')
     #ax.plot(numpy.nan,1,label='PGA$_{obs}$',**opts)
     
     cax = inset_axes(ax,
-                    width="50%",  # width = 50% of parent_bbox width
-                    height="3%",  # height : 3%
+                    width="%d%%"%((1-1/gold)*100),  
+                    height="1%",  # height : 3%
                     loc='upper right',
-                    borderpad=0)
+                    borderpad=-0.25)
     h=matplotlib.cm.ScalarMappable(norm=norm,cmap=cmap)
     cb=matplotlib.pyplot.colorbar(h,
                                   cax=cax,
+                                  extend='both',
                                   orientation="horizontal")
     ticks=[]
     ticklabels=[]
@@ -301,9 +355,7 @@ def ploteqdata(self, #eqdata[output].select(channel='*b')
             
     ax.invert_yaxis()
     ax.tick_params(axis='both',labelsize='small')
-    axx=ax.twinx()
     axx.tick_params(axis='both',labelsize='small')
-    axx.invert_yaxis()
     axx.set_ylabel('Hypocentral distance (km)',fontsize='small')
     axx.set_ylim(ax.get_ylim())
     fmt = lambda x, pos: "%1g"%round((x**2+(event.preferred_origin().depth/1000)**2)**.5,1)
@@ -396,4 +448,173 @@ def ploteqdata(self, #eqdata[output].select(channel='*b')
                  loc='left',
                  fontsize='small'
                  )
+    
+    
     return ax.figure
+
+
+
+
+
+def select(stream,
+           startafter=None,
+           endbefore=None,
+           startbefore=None,
+           endafter=None,
+           **kargs):
+    out = stream.select(**kargs)
+    if startafter is not None:
+        out = [tr for tr in out if tr.stats.starttime>=startafter]
+    if endbefore is not None:
+        out = [tr for tr in out if tr.stats.endtime<=endbefore]
+    if startbefore is not None:
+        out = [tr for tr in out if tr.stats.starttime<startbefore]
+    if endafter is not None:
+        out = [tr for tr in out if tr.stats.endtime>endafter]
+    return Stream(out)
+
+def overlap(reftrace,
+            trace):
+    starttime = max([reftrace.stats.starttime , trace.stats.starttime])
+    endtime =  min([reftrace.stats.endtime , trace.stats.endtime])
+    if starttime>=endtime:
+        print('WARNING! No overlaping data in')
+        print(starttime,endtime)
+        return [],[],starttime,0
+    iref = (reftrace.times(reftime=starttime)>=0)&(reftrace.times(reftime=endtime)<=0)
+    itr = (trace.times(reftime=starttime)>=0)&(trace.times(reftime=endtime)<=0)
+    return iref, itr, starttime, sum(iref)
+
+def combinehoriz(EN,
+                 horizontal_code='h'):
+    starttime = max([tr.stats.starttime for tr in EN])
+    endtime = min([tr.stats.endtime for tr in  EN])
+    if endtime<=starttime:
+        longer = numpy.argmax([tr.stats.npts for tr in EN])
+        return EN[longer:longer],EN[longer]
+    EN = EN.slice(starttime,endtime)
+    npts = min([tr.stats.npts for tr in EN])
+    for tr in EN:
+        tr.data=tr.data[:npts]
+    iref, itr, starttime, npts = overlap(EN[0],EN[1])
+    tr = Trace(header=EN[0].stats) #EN[0].copy()
+    tr.stats.channel = tr.stats.channel[:-1]+horizontal_code
+    tr.stats.npts = npts
+    tr.stats.startime = starttime
+    if isinstance(EN[0].data[0] , UTCDateTime):
+        tr.data = numpy.max([EN[0].data[iref],
+                             EN[1].data[itr]],
+                            axis=0)
+    else:
+        tmp = EN[0].data[iref]**2
+        l=min([len(EN[1].data[itr]),len(EN[0].data[iref])])
+        tmp[:l-1] += EN[1].data[itr][:l-1]**2
+        tr.data = tmp**.5
+    return EN, tr
+
+def combinechannels(stream = Stream(),
+                    combine = 'all',
+                    horizontal_code = 'b',
+                    tridimentional_code = 't',
+                    difference_code = 'd',
+                    ref = Stream(),
+                    max_code = 'm',
+                    percentile=False,
+                    verbose=False,
+                    limit=9999999):
+    dontdo=[]
+    tridim = Stream()
+    horiz = Stream()
+    diff = Stream()
+    for trace in stream:
+        if trace.id[:-1] not in dontdo:
+            dontdo.append(trace.id[:-1])
+            if combine in 'differences':
+                if len(diff)>limit:
+                    print('REACHED LIMIT!!!')
+                    return diff
+                #reftrace=ref.select(id=trace.id)
+                reftrace = select(ref,
+                                  startafter = trace.stats.starttime,
+                                  endbefore = trace.stats.endtime,
+                                  id=trace.id)
+                if (not len(reftrace) and
+                    len(trace.stats.channel)==2):
+                    E = select(ref,
+                               startafter = trace.stats.starttime,
+                               endbefore = trace.stats.endtime,
+                               id=trace.id+'[E,2]')
+                    N = select(ref,
+                              startafter = trace.stats.starttime,
+                              endbefore = trace.stats.endtime,
+                              id=trace.id+'[N,3]')
+                    #E = ref.select(id=trace.id+'[E,2]').slice(trace.stats.starttime,trace.stats.endtime)
+                    #N = ref.select(id=trace.id+'[N,3]').slice(trace.stats.starttime,trace.stats.endtime)
+                    try:
+                        EN, reftrace = combinehoriz(Stream([E[0], N[0]]), horizontal_code='')
+                    except:
+                        if verbose:
+                            print('WARNING! No reference streams found in ref for ')
+                            print(trace)
+                        continue
+                else:
+                    try:
+                        reftrace=reftrace[0]
+                    except:
+                        if verbose:
+                            print('WARNING! No reference stream found in ref for ')
+                            print(trace)
+                        continue
+                if not len(reftrace.data) :
+                    if verbose:
+                        print('WARNING! No reference trace found in ref for ')
+                        print(trace)
+                    continue
+                        
+                iref, itr, starttime, npts = overlap(reftrace,trace)
+                tr = Trace(header=trace.stats) #reftrace.copy()
+                tr.stats.starttime = starttime
+                tr.stats.npts = npts
+                tr.stats.channel = tr.stats.channel+difference_code
+                
+                if isinstance(trace.data[0] , UTCDateTime):
+                    tr.data = numpy.asarray([ reftrace.data[iref][i]-d for i,d in enumerate(trace.data[itr])])
+                else:
+                    tr.data = reftrace.data[iref]-trace.data[itr]
+                    if percentile:
+                        tr.data[reftrace.data<numpy.sort(reftrace.data)[int(len(reftrace.data)*percentile)]]=numpy.nan
+                diff += tr
+            else:
+                Z = stream.select(id=trace.id[:-1]+'[Z,1]').slice(trace.stats.starttime,trace.stats.endtime)
+                E = stream.select(id=trace.id[:-1]+'[E,2]').slice(trace.stats.starttime,trace.stats.endtime)
+                N = stream.select(id=trace.id[:-1]+'[N,3]').slice(trace.stats.starttime,trace.stats.endtime)
+
+                if combine in 'horizontal2dimensionaltwodimensionalboth' and E and N:
+                    EN,tr = combinehoriz(E+N,
+                                         horizontal_code=horizontal_code)
+                    horiz += EN
+                    horiz += tr
+
+                if Z and E and N and  combine in 'all3dimensionaltridimensionalboth' :
+                    starttimes = [tr.stats.starttime for tr in E+N+Z]
+                    endtimes = [tr.stats.endtime for tr in E+N+Z]
+                    if max(starttimes)>min(endtimes):
+                        longer = numpy.argmax([tr.stats.npts for tr in E+N+Z])
+                        tridim += (E+N+Z)[longer]
+                        tr = (E+N+Z)[longer].copy()
+                    else:
+                        ZEN = (Z+E+N).slice(max(starttimes),min(endtimes))
+                        npts = [tr.stats.npts for tr in ZEN]
+                        tridim += ZEN
+                        tr = ZEN[0].copy()
+                    tr.stats.channel = tr.stats.channel[:-1]+tridimentional_code
+                    tr.data = (ZEN[0].data[:min(npts)]**2+ZEN[1].data[:min(npts)]**2+ZEN[2].data[:min(npts)]**2)**.5
+                    tridim += tr
+
+    if combine in 'both':
+        return tridim , horiz
+    elif combine in 'all3dimensionaltridimensional':
+        return tridim
+    elif combine in 'differences':
+        return diff
+    return horiz

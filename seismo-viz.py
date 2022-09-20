@@ -7,7 +7,7 @@ import os
 
 from addons.get_events import get_events_updatedafter
 from addons.get_waveforms import get_events_waveforms
-from addons.stream import ploteqdata
+from addons.stream import ploteqdata,combinechannels
 
 def make_data(catalog_uri='USGS',
          inventory_url=None,
@@ -108,12 +108,19 @@ def make_data(catalog_uri='USGS',
 def make_plots(catalog,eventstreams,eventinventories):
     
     for event, streams, inventory in zip(catalog,eventstreams,eventinventories):
-        print(event)
-        print(inventory)
-        print(streams['acc'])
+
+        shorteventid = str(event.resource_id).split('/')[-1]
+
+        ## Removing bad channels from plots
+        for tr in streams['acc'].select(location='99'):
+            streams['acc'].remove(tr)
+
+        ## Combine horizontal data
+        tridim , horiz = combinechannels(streams['acc'], combine='both')
+        streams['acc'] += horiz.select(channel='*b')
 
         ## Plot data
-        fig = ploteqdata(streams['acc'].select(channel='*b'),event,inventory,lim=120)
+        fig = ploteqdata(streams['acc'].select(channel='*b'),event,inventory,lim=999)
         fig.tight_layout()
         fig.savefig('data/%s_data.png'%shorteventid,
                     dpi=512,
@@ -145,7 +152,7 @@ if __name__ == '__main__':
     catalog,eventstreams,eventinventories = make_data(**args)
     
     # Creating plots
-    #make_plots(catalog,eventstreams,eventinventories)
+    make_plots(catalog,eventstreams,eventinventories)
 
     # To do:
     # - webhook/email notif
