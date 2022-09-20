@@ -5,6 +5,7 @@ on:
   # Lines below let you run workflow manually and on each commit
   workflow_dispatch:
   push: {branches: ["master", "main"]}
+
 jobs:
   Viz-EEW-UNA:
     runs-on: ubuntu-latest
@@ -24,7 +25,7 @@ jobs:
           python -m pip install --requirement ${{ github.workspace }}/requirements.txt
       - name: Run the main program
         run: |
-          python ${{ github.workspace }}/seismo-viz.py catalog_uri='USGS',${{ secrets.UNA_EEW_URL }} minmagnitude=4 longitude=-84 latitude=9.5 maxradius=3 debug=1
+          python ${{ github.workspace }}/seismo-viz.py catalog_uri=USGS,${{ secrets.MARN_EEW_URL }} minmagnitude=4 longitude=-89 latitude=13.6 maxradius=2 debug=1
       - name: Archive all data and visuals in workspace
         uses: actions/upload-artifact@v3
         id: archive
@@ -38,3 +39,6 @@ jobs:
           retention-days: 1
       - run: echo "🎁 The visuals from ${{ github.workspace }} are archived as an artifact for 1 days."
       - run: echo "🍏 This job's status is ${{ job.status }}."
+
+
+# python ${{ github.workspace }}/seismo-viz.py catalog_uri='USGS',${{ secrets.UNA_EEW_URL }} stream_url=${{ secrets.UNA_EEW_URL }} minmagnitude=4 longitude=-84 latitude=9.5 maxradius=3 debug=1

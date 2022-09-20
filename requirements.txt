@@ -1,2 +1,4 @@
+basemap_data==1.3.2
+matplotlib==3.5.3
 numpy==1.23.2
 obspy==1.3.0
