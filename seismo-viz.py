@@ -92,17 +92,24 @@ def make_data(catalog_uri='USGS',
         if not os.path.exists("data"):
             os.makedirs("data")
             
-        ## Save event (meta)data
+        ## Save event data
         event.write('data/%s.quakeml'%shorteventid,
                     format='quakeml')
+        print('data/%s.quakeml'%shorteventid)
+
+        ## Save event metadata
         inventory.write('data/%s.stationxml'%shorteventid,
                         format='STATIONXML')
+        print('data/%s.stationxml'%shorteventid)
+        
+        ## Save event seismic data
         for output, stream in streams.items():
             # {'raw': ..., 'acc': ...,'vel': ..., 'disp': ...}
             stream.write('data/%s.%s.mseed'%(shorteventid,
                                              output),
                          format='mseed')
-
+            print('data/%s.%s.mseed'%(shorteventid,output))
+        
     return catalog,eventstreams,eventinventories
 
 def make_plots(catalog,eventstreams,eventinventories):
@@ -126,6 +133,7 @@ def make_plots(catalog,eventstreams,eventinventories):
                     dpi=512,
                     facecolor='none',
                     transparent=False)
+        print('data/%s_data.png'%shorteventid)
 
         ## Map results
         #
