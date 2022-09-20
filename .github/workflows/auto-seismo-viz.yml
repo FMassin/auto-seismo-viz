@@ -82,9 +82,16 @@ jobs:
           from: ${{ github.repository }} # Luke Skywalker # <user@example.com>
           # Optional plain body:
           body: |
-            "# New event at MARN"
-            Event processing of ${{github.repository}} for MARN completed successfully! 
-            "> Results available for 1 day at ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }} "
+            <!DOCTYPE html>
+            <html>
+              <head>
+                <title>New event at MARN</title>
+              </head>
+            <body>                  
+                  <p>Event processing of ${{github.repository}} for MARN completed successfully! </p>
+                  <p>Results available for 1 day here ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}</p>
+            </body>
+            </html>
           # Optional HTML body read from file:
           #html_body: file://README.html
           # Optional carbon copy recipients:
@@ -98,9 +105,9 @@ jobs:
           # Optional unsigned/invalid certificates allowance:
           ignore_cert: true
           # Optional converting Markdown to HTML (set content_type to text/html too):
-          convert_markdown: true
+          #convert_markdown: true
           # Optional attachments:
-          attachments: ${{ github.workspace }}/*.png
+          attachments: ${{ github.workspace }}/data/*.png
           # Optional priority: 'high', 'normal' (default) or 'low'
           priority: high
       - run: echo "🍏 This job's status is ${{ job.status }}."
