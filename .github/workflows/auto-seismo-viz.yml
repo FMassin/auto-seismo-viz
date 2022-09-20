@@ -22,10 +22,10 @@ jobs:
           python -m pip install --requirement ${{ github.workspace }}/requirements.txt      
       - run: echo "🖥️ The workflow is now ready to run ${{ github.repository }}."
 
-      - name: Run the main program # add nseconds=9999999999 ndays=9 for full test
+      - name: Run the main program # add nseconds=9999999999 ndays=9 limit=2 for full test
         id: seismoviz
         run: |
-          python ${{ github.workspace }}/seismo-viz.py catalog_uri=USGS,${{ secrets.MARN_EEW_URL }} minmagnitude=4 longitude=-89 latitude=13.6 maxradius=2 debug=1  
+          python ${{ github.workspace }}/seismo-viz.py catalog_uri=USGS,${{ secrets.MARN_EEW_URL }} minmagnitude=4 longitude=-89 latitude=13.6 maxradius=2 debug=1  nseconds=9999999999 ndays=9 limit=2
       - if: steps.seismoviz.outcome == 'success'
         run: echo "🖥️ The code in seismo-viz.py from ${{ github.repository }} exited successfully."
       
@@ -81,7 +81,10 @@ jobs:
           # Required sender full name (address can be skipped):
           from: ${{ github.repository }} # Luke Skywalker # <user@example.com>
           # Optional plain body:
-          body: Event processing of ${{github.repository}} for MARN completed successfully!
+          body: |
+            "# New event at MARN"
+            Event processing of ${{github.repository}} for MARN completed successfully! 
+            "> Results available for 1 day at ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }} "
           # Optional HTML body read from file:
           #html_body: file://README.html
           # Optional carbon copy recipients:
@@ -95,7 +98,7 @@ jobs:
           # Optional unsigned/invalid certificates allowance:
           ignore_cert: true
           # Optional converting Markdown to HTML (set content_type to text/html too):
-          #convert_markdown: true
+          convert_markdown: true
           # Optional attachments:
           attachments: ${{ github.workspace }}/*.png
           # Optional priority: 'high', 'normal' (default) or 'low'
