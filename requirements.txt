@@ -1,4 +1,7 @@
 basemap_data==1.3.2
+geocoder==1.38.1
 matplotlib==3.5.3
 numpy==1.23.2
 obspy==1.3.0
+scipy==1.9.1
+basemap-data-hires==1.3.2

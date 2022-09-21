@@ -3,26 +3,7 @@ from obspy import read_events
 from obspy.core.event.catalog import Catalog
 from obspy.clients.fdsn.header import FDSNNoDataException
 import numpy
-
-def haversine(lon1, lat1, lon2, lat2):
-    """
-    Calculate the great circle distance between two points
-    on the earth (specified in decimal degrees)
-    """
-    # convert decimal degrees to radians
-    #lon1 = numpy.deg2rad(lon1)
-    #lat1 = numpy.deg2rad(lat1)
-    #lon2 = numpy.deg2rad(lon2)
-    #lat2 = numpy.deg2rad(lat2)
-    lon1, lat1, lon2, lat2 = map(numpy.deg2rad, [lon1, lat1, lon2, lat2])
-
-    # haversine formula
-    dlon = lon2 - lon1
-    dlat = lat2 - lat1
-    a = numpy.sin(dlat/2)**2 + numpy.cos(lat1) * numpy.cos(lat2) * numpy.sin(dlon/2)**2
-    c = 2 * numpy.arcsin(numpy.sqrt(a))
-    r = 6371000 # Radius of earth in meters. Use 3956 for miles
-    return c * r
+import addons.core
 
 def match_events(self=Catalog(),
                  toadd=Catalog(),
@@ -111,7 +92,7 @@ def match_events(self=Catalog(),
                 if candidateo.time not in listfound:
 
                     dt = abs(o.time-candidateo.time)
-                    dl = haversine(o.longitude,
+                    dl = addons.core.haversine(o.longitude,
                                                     o.latitude,
                                                     candidateo.longitude,
                                                     candidateo.latitude)
@@ -206,17 +187,6 @@ def match_events(self=Catalog(),
                     for i,att in enumerate(e[listatt] ):
                         matchs.events[-1][listatt].insert(i,att)
 
-            if False:
-                geocode = geocoder.osm([matchs.events[-1].preferred_origin().latitude,
-                                        matchs.events[-1].preferred_origin().longitude],
-                                       method='reverse').json
-                obspytypes = ["region name","nearest cities"]
-                for itype,type in enumerate(['region','city']):
-                    matchs.events[-1].event_descriptions.append(obspy.core.event.event.EventDescription(text=geocode[type],
-                                                                                                    type=obspytypes[itype]))
-
-
-
             if matchs.events[-1].preferred_magnitude() is None:
                 print('No pref mag')
                 print(matchs.events[-1])
@@ -247,7 +217,6 @@ def match_events(self=Catalog(),
                                                           x=False)
 
     return matchs, missed, extras
-
 
 def get_events_updatedafter(self,
                             updated_after=None,

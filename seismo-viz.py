@@ -4,10 +4,10 @@ from obspy.core import UTCDateTime
 from sys import argv
 from re import sub
 import os
-
 from addons.get_events import get_events_updatedafter
 from addons.get_waveforms import get_events_waveforms
 from addons.stream import ploteqdata,combinechannels
+from addons.core import eewmap
 
 def make_data(catalog_uri='USGS',
          inventory_url=None,
@@ -114,6 +114,9 @@ def make_data(catalog_uri='USGS',
 
 def make_plots(catalog,eventstreams,eventinventories):
     
+    saveopt = {'dpi':512,
+               'facecolor':'none',
+               'transparent':False}
     for event, streams, inventory in zip(catalog,eventstreams,eventinventories):
 
         shorteventid = str(event.resource_id).split('/')[-1]
@@ -126,17 +129,24 @@ def make_plots(catalog,eventstreams,eventinventories):
         tridim , horiz = combinechannels(streams['acc'], combine='both')
         streams['acc'] += horiz.select(channel='*b')
 
+
         ## Plot data
         fig = ploteqdata(streams['acc'].select(channel='*b'),event,inventory,lim=999)
         fig.tight_layout()
-        fig.savefig('data/%s_data.png'%shorteventid,
-                    dpi=512,
-                    facecolor='none',
-                    transparent=False)
+        fig.savefig('data/%s_data.png'%shorteventid,**saveopt)
         print('data/%s_data.png'%shorteventid)
 
+
         ## Map results
-        #
+        fig = eewmap({'event':event,
+                      'inventory':inventory},
+                     radius=110000,
+                     reference=False,
+                     stationgroups={},
+                     delaystep=2)
+        fig.savefig('data/%s_map.png'%shorteventid,**saveopt)
+        print('data/%s_map.png'%shorteventid)
+
 
         ## Plot results timeline
         #
@@ -163,7 +173,7 @@ if __name__ == '__main__':
     make_plots(catalog,eventstreams,eventinventories)
 
     # To do:
-    # - webhook/email notif
+    # - webhook notif
     # - html or panel report
     # - station and event tables
     # - pip install

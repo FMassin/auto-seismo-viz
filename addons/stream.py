@@ -452,10 +452,6 @@ def ploteqdata(self, #eqdata[output].select(channel='*b')
     
     return ax.figure
 
-
-
-
-
 def select(stream,
            startafter=None,
            endbefore=None,
