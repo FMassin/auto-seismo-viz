@@ -209,7 +209,7 @@ def map_events(self=Catalog(),
         elif eqcolorfield[0] in ['t', 'd', 'e', 'P'] and (eqcolorfield[-1] in [str(int(n)) for n in range(9)] or eqcolorfield[1] in ['M', 'O']):
             eqcolorlabel = 'Travel time to %s$^{th}$ station \n(s'%(eqcolorfield[1:])
             if eqcolorfield[1] in ['M', 'O']:
-                if eqcolorfield[-1] is 'l':
+                if eqcolorfield[-1] == 'l':
                     eqcolorlabel = 'last %s \n(s after Ot)'%(eqcolorfield[-2].upper())
                 else :
                     eqcolorlabel = '%s$^{%s}$ %s \n(s after Ot)'%(eqcolorfield[-1],stndrdth[int(eqcolorfield[-1])],eqcolorfield[1:-1])

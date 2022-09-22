@@ -9,12 +9,12 @@ from addons.get_waveforms import get_events_waveforms
 from addons.stream import ploteqdata,combinechannels
 from addons.core import eewmap
 
-def make_data(catalog_uri='USGS',
+def event_data(catalog_uri='USGS',
          inventory_url=None,
          stream_url=None,
          files=None,
          ndays=4,
-         nseconds=15*60*60,
+         nseconds=15*60,
          user=None, 
          password=None, 
          debug=False, 
@@ -112,7 +112,7 @@ def make_data(catalog_uri='USGS',
         
     return catalog,eventstreams,eventinventories
 
-def make_plots(catalog,eventstreams,eventinventories):
+def event_plots(catalog,eventstreams,eventinventories):
     
     saveopt = {'dpi':512,
                'facecolor':'none',
@@ -167,10 +167,10 @@ if __name__ == '__main__':
     print(tmp)
 
     # Creating plots
-    catalog,eventstreams,eventinventories = make_data(**args)
+    catalog,eventstreams,eventinventories = event_data(**args)
     
     # Creating plots
-    make_plots(catalog,eventstreams,eventinventories)
+    event_plots(catalog,eventstreams,eventinventories)
 
     # To do:
     # - webhook notif

@@ -240,7 +240,7 @@ def get_events_updatedafter(self,
             print('No event found with', kwargs)
 
     if debug:
-        print('Found s:')    
+        print('Found:')    
         print(catalog_last_ndays.__str__(print_all=True))
 
     ## The catalog in last N days updated in last N seconds
