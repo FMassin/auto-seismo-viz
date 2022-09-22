@@ -8,6 +8,7 @@ from addons.get_events import get_events_updatedafter
 from addons.get_waveforms import get_events_waveforms
 from addons.stream import ploteqdata,combinechannels
 from addons.core import eewmap
+from addons.catalog import performance_timelines
 
 def event_data(catalog_uri='USGS',
          inventory_url=None,
@@ -91,7 +92,7 @@ def event_data(catalog_uri='USGS',
         ## Make output dirs
         if not os.path.exists("data"):
             os.makedirs("data")
-            
+    
         ## Save event data
         event.write('data/%s.quakeml'%shorteventid,
                     format='quakeml')
@@ -139,17 +140,19 @@ def event_plots(catalog,eventstreams,eventinventories):
 
         ## Map results
         fig = eewmap({'event':event,
-                      'inventory':inventory},
-                     radius=110000,
-                     reference=False,
-                     stationgroups={},
-                     delaystep=2)
+                    'inventory':inventory},
+                    radius=150000,
+                    reference=False,
+                    stationgroups={},
+                    delaystep=2)
         fig.savefig('data/%s_map.png'%shorteventid,**saveopt)
         print('data/%s_map.png'%shorteventid)
 
 
         ## Plot results timeline
-        #
+        fig = performance_timelines(event)
+        fig.savefig('data/%s_timeline.png'%shorteventid,**saveopt)
+
 
         ## Animate data and results
         #

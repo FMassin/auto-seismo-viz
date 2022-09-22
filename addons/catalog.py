@@ -4,6 +4,7 @@ from obspy.taup import TauPyModel
 from obspy.imaging.beachball import beach
 import addons.core
 import numpy
+import matplotlib.pyplot,matplotlib.figure
 
 def distfilter(self=Catalog(),
                dmax=None,
@@ -301,7 +302,7 @@ def map_events(self=Catalog(),
                         if eqcolorfield[1:-1] in str(m.magnitude_type) or str(m.magnitude_type) in eqcolorfield[1:-1] : # and str( test )  in  str( o.resource_id ) :
                             if eqcolorfield[0] in ['d']:
                                 o = m.origin_id.get_referred_object()
-                                ep_d = obspy_addons.haversine(origin.longitude,
+                                ep_d = addons.core.haversine(origin.longitude,
                                                               origin.latitude,
                                                               o.longitude,
                                                               o.latitude)
@@ -443,7 +444,7 @@ def map_events(self=Catalog(),
                     else:
                         for istation,lonstation in enumerate(stations_longitudes):
                             latstation =  stations_latitudes[istation]
-                            ep_d = obspy_addons.haversine(lonstation,
+                            ep_d = addons.core.haversine(lonstation,
                                                         latstation,
                                                         o.longitude,
                                                         o.latitude)
@@ -496,7 +497,6 @@ def map_events(self=Catalog(),
         if eqcolorfield[0] in [ 't' , 'P' , 'p' ]:
             sortorder =  sortorder[::-1]
 
-        print("vmin=",vmin,"vmax=",vmax)
         norm = matplotlib.colors.Normalize(vmin=vmin,vmax=vmax)
         if eqcolorfield[0] not in 'd':
             eqcolor[eqcolor>vmax]=numpy.nan
@@ -546,12 +546,6 @@ def map_events(self=Catalog(),
 
         if fp:
             cmap=cf.get_cmap()
-            print('check this')
-            if False:
-                if vmin and vmax:
-                    norm=matplotlib.colors.Normalize(vmin=vmin,vmax=vmax)
-                else:
-                    norm=matplotlib.colors.Normalize(vmin=min(eqcolor),vmax=max(eqcolor))
 
             #client = Client("USGS")
             for i in numpy.argsort(sizes)[max([-100,-1*len(sizes)]):]:
@@ -561,7 +555,6 @@ def map_events(self=Catalog(),
                     e = self.events[i] #client.get_events(eventid=id,producttype='moment-tensor').events[0]
                     o = e.preferred_origin()
                     for f in e.focal_mechanisms[::-1]:
-                        #print(f)
                         t=f.moment_tensor.tensor
                         xy=bmap(longitudes[i],latitudes[i])
                         try:
@@ -613,3 +606,374 @@ def map_events(self=Catalog(),
                 fig.cb.ax.set_yticklabels(obspy_addons.num2roman(list(range(1,15))))
 
     return titletext
+
+def performance_timelines(event,
+                          stations=None,
+                          vs=3.7,
+                          magnitude_types=['Mfd','MVS'],
+                          authors=['scvsmag','scvsmag2'],
+                          lineauthors=None, #'scfinder'],
+                          type='soil',
+                          xlim=59,
+                          lettering_offset=0):
+
+    authors += addons.core.scfinderauthor(event.preferred_origin(),
+                                          lineauthors=lineauthors)
+    w,h=matplotlib.figure.figaspect(1.)
+    f=matplotlib.pyplot.figure(figsize=(w*1.4,h*1.3))
+    initaxes = f.subplots(4,1,sharex=True)
+    axes = [initaxes[2], initaxes[1], initaxes[0], initaxes[3]]
+    
+    axesdata=[{'x':{},
+               'y':{},
+               'yep':{},
+               'yem':{},
+               'label':{},
+               'title':r'M$_{type}$',
+               'ylabel':'Magnitude'},
+              {'x':{},
+               'y':{},
+               'yep':{},
+               'yem':{},
+               'label':{},
+               'title':r'M$_{type}$ (last loc.)',
+               'ylabel':r'Location $\delta$ (km)'},
+              {'x':{},
+               'y':{},
+               'yep':{},
+               'yem':{},
+               'label':{},
+               'title':r'M$_{type}$',# (last #)',
+               'ylabel':r'Stations #'},
+              {'x':{},
+               'y':{},
+               'yep':{},
+               'yem':{},
+               'label':{},
+               'title':r'M$_{type}$ (intensity)',
+               'ylabel':'Max. pred.\nintensity'}]
+
+
+
+    preferred_magnitude=event.preferred_magnitude()
+    preferred_origin=event.preferred_origin()
+    mPG={}
+    magnitudes = []
+    for t in magnitude_types:
+        for m in event.magnitudes[::-1]:
+            if m.magnitude_type==t and m.creation_info.author.split('@')[0] in authors:
+                    magnitudes +=[m]
+    for m in magnitudes:
+        if (m.magnitude_type in magnitude_types and
+            m.creation_info.author.split('@')[0] in authors):
+            
+            
+            for itmp,tmp in enumerate([preferred_magnitude, m]):
+                key = (tmp.magnitude_type,tmp.creation_info.author)
+                o=tmp.origin_id.get_referred_object()
+                tmpeewdelay = [m.creation_info.creation_time-preferred_origin.time]
+                
+                if key not in axesdata[0]['x'].keys() and tmp.magnitude_type not in magnitude_types:
+                    tmpeewdelay = list(numpy.linspace(int(preferred_origin.depth/1000/vs),tmpeewdelay[0],64))
+                    
+                for eewdelay in tmpeewdelay:
+                    if key not in axesdata[0]['x'].keys():
+                        axesdata[0]['x'][key]=[]
+                        axesdata[0]['y'][key]=[]
+                        axesdata[0]['yep'][key]=[]
+                        axesdata[0]['yem'][key]=[]
+                        axesdata[1]['x'][key]=[]
+                        axesdata[1]['y'][key]=[]
+                        axesdata[1]['yep'][key]=[]
+                        axesdata[1]['yem'][key]=[]
+                        axesdata[3]['x'][key]=[]
+                        axesdata[3]['y'][key]=[]
+                        axesdata[3]['yep'][key]=[]
+                        axesdata[3]['yem'][key]=[]
+                        mPG[key]=0
+
+                    #############################################
+                    axesdata[0]['x'][key].append(eewdelay)
+                    axesdata[0]['y'][key].append(tmp.mag)
+                    mag_errors_uncertainty=tmp.mag_errors['uncertainty'] or \
+                                           numpy.percentile(numpy.abs([sm.residual for sm in tmp.station_magnitude_contributions]+[0]),34) or \
+                                           0
+                    axesdata[0]['yep'][key].append(mag_errors_uncertainty)
+                    axesdata[0]['yem'][key].append(mag_errors_uncertainty)
+
+                    if eewdelay==min(axesdata[0]['x'][key]) or (eewdelay==0 and tmp.magnitude_type not in magnitude_types):
+                        label = r'M$_{%s}$ %.1f'%(tmp.magnitude_type[1:],
+                                                    tmp.mag)
+                        axesdata[0]['label'][key]=label
+
+                    #############################################
+                    d = addons.core.haversine(preferred_origin.longitude,
+                                                   preferred_origin.latitude,
+                                                   o.longitude,
+                                                   o.latitude)
+                    d = (d**2+(preferred_origin.depth-o.depth)**2)**.5
+                    axesdata[1]['y'][key].append(d/1000)
+
+                    de=((o.latitude_errors['uncertainty']or 5)**2+
+                        (o.longitude_errors['uncertainty']or 5)**2+
+                        ((o.depth_errors['uncertainty']or 5000)/1000)**2)**.5
+                    #de+=110*((preferred_origin.latitude_errors['uncertainty']or 0)**2+
+                    #        (preferred_origin.longitude_errors['uncertainty']or 0)**2+
+                    #        ((preferred_origin.depth_errors['uncertainty']or 0)/110000)**2)**.5
+                    axesdata[1]['yep'][key].append(de)
+                    axesdata[1]['yem'][key].append(de)
+                    axesdata[1]['x'][key].append(eewdelay)
+                    if eewdelay==min(axesdata[1]['x'][key]) or  (eewdelay==0 and tmp.magnitude_type not in magnitude_types):
+                        label = r'%s$_{%s}$ $^{N%.2f°}_{E%.2f°}$%.0f$^{bsl}_{km}$'%(tmp.magnitude_type[0],
+                                                             tmp.magnitude_type[1:],
+                                                             o.latitude,
+                                                             o.longitude,
+                                                             o.depth/1000. )
+                        axesdata[1]['label'][key]=label
+
+                    #############################################
+                    memlogPGcm=-99999
+                    if stations is None:
+                        eewdistance=eewdelay*vs-d/1000
+                        memlogPGcm=9
+                    else:
+                        for network in stations:
+                            for station in network:
+                                distance=addons.core.haversine(o.longitude,
+                                                       o.latitude,
+                                                       station.longitude,
+                                                       station.latitude)
+
+                                distance = ((distance**2+(-station.elevation-o.depth)**2)**.5)/1000.
+                                            
+                                logPGcm = addons.core.ipe_allen2012_hyp(numpy.asarray([max([.1,abs(eewdistance)])]),
+                                                                        numpy.asarray([tmp.mag]),
+                                                                        s=-1)[0]
+                                          
+                                if distance >= eewdelay*vs and logPGcm>memlogPGcm:
+                                    memlogPGcm=logPGcm
+                                    eewdistance=distance
+
+                    if memlogPGcm>-99999:
+                        axesdata[3]['x'][key].append(eewdelay)
+                        logPGcm = addons.core.ipe_allen2012_hyp(numpy.asarray([max([.1,abs(eewdistance)])]),
+                                                                numpy.asarray([tmp.mag]),
+                                                                s=-1)
+                        if numpy.isnan(logPGcm[0]):
+                            print('WARNING: NaN PGA at %g km'%(eewdistance))
+
+                        PG=logPGcm[0]
+                        axesdata[3]['y'][key].append(PG)
+                        if PG>mPG[key] or eewdelay==0:
+                            mPG[key]=PG
+                            if eewdelay==min(axesdata[3]['x'][key]) or (eewdelay==0 and tmp.magnitude_type not in magnitude_types):
+                                label = r'%s$_{%s}$ %.0e m/s$^2$'%(tmp.magnitude_type[0],
+                                                               tmp.magnitude_type[1:],
+                                                               PG)
+                                axesdata[3]['label'][key]=label
+
+                        if mag_errors_uncertainty<2.:
+                            logPGcm = addons.core.ipe_allen2012_hyp(numpy.asarray([max([.1,abs(eewdistance-de)])]),
+                                                                            numpy.asarray([tmp.mag+mag_errors_uncertainty]),
+                                                                            s=-1)
+                            if numpy.isnan(logPGcm[0]):
+                                print('WARNING: Nan PGA for %g = %g - %g'%(eewdistance-de,eewdistance,de))
+                            axesdata[3]['yep'][key].append(logPGcm[0] - PG)
+                            
+                            logPGcm = addons.core.ipe_allen2012_hyp(numpy.asarray([max([.1,abs(eewdistance+de)])]),
+                                                                    numpy.asarray([tmp.mag-mag_errors_uncertainty]),
+                                                                    s=-1)
+                            if numpy.isnan(logPGcm[0]):
+                                print('WARNING: Nan PGA %g = %g + %g'%(eewdistance-de,eewdistance,de))
+                            axesdata[3]['yem'][key].append(PG - logPGcm[0])
+                        else:
+
+                            axesdata[3]['yep'][key].append(0)
+                            axesdata[3]['yem'][key].append(0)
+
+                    #############################################
+
+                    if not hasattr(o.quality,'used_phase_count'):
+                        continue
+                    if key not in axesdata[2]['x'].keys():
+                        axesdata[2]['x'][key]=[]
+                        axesdata[2]['y'][key]=[]
+                        axesdata[2]['yep'][key]=[]
+                        axesdata[2]['yem'][key]=[]
+                        
+                    n = o.quality.used_phase_count #tmp.station_count
+                    narr=n
+                    if len(preferred_origin.arrivals)>0:
+                        narr=0
+                        for arr in preferred_origin.arrivals:
+                            pick = arr.pick_id.get_referred_object()
+                            if pick is not None:
+                                test=pick.time-preferred_origin.time
+                                if ('P' in arr.phase and
+                                    test<=eewdelay):#tmp.creation_info.creation_time):
+                                    narr+=1
+                    else:
+                        pass
+                        # use best origin available?
+                    if itmp:
+                        axesdata[2]['y'][key].append(n)
+                    else:
+                        axesdata[2]['y'][key].append(narr)
+
+                    axesdata[2]['yep'][key].append(0)#max([0,narr-n]))
+                    axesdata[2]['yem'][key].append(0)#max([0,n-narr]))
+                    axesdata[2]['x'][key].append(eewdelay)
+                    if eewdelay==min(axesdata[2]['x'][key]) or (eewdelay==0 and tmp.magnitude_type not in magnitude_types):
+                        author=''
+                        if tmp.magnitude_type in magnitude_types:
+                            author = tmp.creation_info.author.split('@')[0]
+
+                        label = r'M$_{%s}^{%s}$'%(tmp.magnitude_type[1:],author# %.0f (%s.)
+                                                       #n,
+                                                       #key[0][0]
+                                                       )
+                        axesdata[2]['label'][key]=label
+
+
+    maxt=0
+    maxy=0
+
+
+    for i,data in enumerate(axesdata):
+        for key in data['y']:
+            for e in range(9):
+                data['label'][key] = data['label'][key].replace('e-%02.0f'%e,'$e^{-%.0f}$'%e)
+                data['label'][key] = data['label'][key].replace('e%02.0f'%e,'$e^{%.0f}$'%e)
+            data['label'][key] = data['label'][key].replace('N-','S')
+            data['label'][key] = data['label'][key].replace('E-','W')
+            indexes=numpy.argsort(data['x'][key])
+            color='C0'
+            if key[0] in magnitude_types:
+                color = 'C%d'%(magnitude_types.index(key[0])+1)
+            axes[i].fill_between([data['x'][key][i] for i in indexes],
+                                 [data['y'][key][i]-data['yem'][key][i] for i in indexes],
+                                 [data['y'][key][i]+data['yep'][key][i] for i in indexes],
+                                 step = 'post',
+                                 facecolor='w',
+                                 alpha=0.7,
+                                 zorder=9)
+            axes[i].fill_between([data['x'][key][i] for i in indexes],
+                                 [data['y'][key][i]-data['yem'][key][i] for i in indexes],
+                                 [data['y'][key][i]+data['yep'][key][i] for i in indexes],
+                                 step = 'post',
+                                 facecolor=color,
+                                 zorder=10,
+                                 alpha=0.3)
+            axes[i].step([data['x'][key][i] for i in indexes],
+                         [data['y'][key][i] for i in indexes],
+                         where='post',
+                         color=color,
+                         zorder=11,
+                         label=data['label'][key])
+
+            axes[i].set_ylabel(data['ylabel'],fontsize='small')
+                      
+            maxt=max([maxt,max(data['x'][key])])
+            maxy=max([maxy,max(data['y'][key])])
+        
+        if i==2:
+            legend=axes[i].legend(#title=data['title'],
+                           prop={'size': 'small'},
+                           ncol=3,
+                           loc='lower right',
+                           bbox_to_anchor=(0, 1, 1, 0)
+                           )
+            legend.remove()
+            axes[i].add_artist(legend)
+
+        axes[i].legend([],[],
+        title='abcdefghijklmnopqrst'[list(initaxes).index(axes[i])+lettering_offset],
+                  title_fontsize='small',
+                  loc='best',
+                  #fontsize=0,
+                  labelspacing=-.2)
+
+
+    x=[]
+    for arr in preferred_origin.arrivals:
+        pick = arr.pick_id.get_referred_object()
+        if pick is not None:
+            if 'P' in arr.phase:
+                x.append(pick.time-preferred_origin.time)
+    axes[2].step(numpy.sort(x),
+                 range(1,len(x)+1),
+                 color='k',
+                 alpha=.1,
+                 where='post',
+                 zorder=-9
+                    )
+    x=[]
+    y=[]
+    ylim=axes[3].get_ylim()
+
+    axes[3].set_ylim(bottom=ylim[0])        
+    for ax in axes:
+        #ax.grid()
+        ax.set_facecolor('w')
+        ax.tick_params(right=True, top=True,
+                       left=True, bottom=True,
+                       which='both')
+        ax.xaxis.set_minor_locator(matplotlib.ticker.AutoMinorLocator())
+        ax.yaxis.set_minor_locator(matplotlib.ticker.AutoMinorLocator())
+        ax.grid(b=True, which='major', color='gray', linestyle='dashdot', zorder=-9999)
+        ax.grid(b=True, which='minor', color='beige',  ls='-', zorder=-9999)  
+        
+    for a in [2,1]:
+        axes[a].set_yscale('log')
+        lim=axes[a].get_ylim()
+        axes[a].set_yticks([0.001,0.01,0.1,1,10,100,1000])
+        axes[a].set_yticklabels([0.001,0.01,0.1,1,10,100,1000])
+        axes[a].set_ylim(lim)
+        y_minor = matplotlib.ticker.LogLocator(base = 10.0, subs = numpy.arange(1.0, 10.0) * 0.1, numticks = 10)
+        axes[a].yaxis.set_minor_locator(y_minor)
+        
+    lim=axes[2].get_ylim()
+    axes[2].set_yticks([4,6,10,100,1000])
+    axes[2].set_yticklabels(["$^{_4}$","$^{_6}$",10,100,1000])
+    axes[2].yaxis.set_minor_formatter('')
+    axes[2].set_ylim([.91,max(lim)])
+    
+            
+    lim=axes[3].get_ylim()
+    axes[3].set_yticks([1,2,3,4,5,6,7,8,9,10,11,12])
+    axes[3].set_yticklabels(['I','II','III','IV','V','VI','VII','VIII','IX','X','XI','XII'])
+    axes[3].set_ylim(lim)
+    top=max([max(axesdata[3]['y'][key][1:]+data['yep'][key][1:]) for key in axesdata[3]['y']])
+    axes[3].set_ylim(top=top+.3)
+    #axes[3].set_ylim(bottom=1)
+
+    lab='Time after origin (second)'
+    ax.set_xlabel(lab,fontsize='small')
+
+    if max(axes[0].get_ylim())>9.5:
+        axes[0].set_ylim(top=9.5)
+    if min(axes[0].get_ylim())<4:
+        pass#axes[0].set_ylim(bottom=4)
+    if max(axes[3].get_ylim())>40:
+        axes[3].set_ylim(top=40)
+    if min(axes[3].get_ylim())<1:
+        axes[3].set_ylim(bottom=1)
+
+    axes[3].set_xlim([1,xlim])
+    
+    descs = ', '.join([desc.text for desc in event.event_descriptions if 'region' in desc.type])
+    t = '%s\nM$_{%s}$%.1f, %s, %.1fkm deep'
+    tt=(str(event.preferred_origin().time)[:19],
+        event.preferred_magnitude().magnitude_type[1:],
+        event.preferred_magnitude().mag,
+        descs,
+        event.preferred_origin().depth / 1000.)
+    axes[2].set_title(t % tt,
+                      loc='left',
+                      fontsize='small')
+
+    f.tight_layout()
+    f.subplots_adjust(hspace = 0)
+    f.align_ylabels(axes)
+    f.tight_layout(pad=0)
+    return f

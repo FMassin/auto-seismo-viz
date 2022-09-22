@@ -71,14 +71,13 @@ def DistancePointLine(px, py, x1, y1, x2, y2):
 def scfinderauthor(origin, lineauthors=None):
 
     if lineauthors is not None and len(lineauthors):
-        print('User defined',lineauthors)
+        print('WARNING: User defined',lineauthors)
         return lineauthors
     lineauthors = ['scfinder']
     geocode = geocoder.osm([origin.latitude,
                             origin.longitude],
                            method='reverse').json
     if geocode is not None and geocode['country'] in ['Switzerland','France']:
-        #print(geocode)
         if ('Valais' in geocode['region'] or
             'Glarus' in geocode['address'] or
             'Haute-Savoie' in geocode['county']):
@@ -166,7 +165,7 @@ def plot_eewsourcelines(event,
             m.creation_info.author.split('@')[0] in authors ):
             magnitudes+=[m]
     if len(magnitudes)==0:
-        print('No source line found')
+        print('WARNING: No source line found')
         return
     indexes = numpy.argsort([m.creation_info.creation_time for m in magnitudes])
     magnitudes = [magnitudes[i] for i in indexes]
@@ -332,7 +331,7 @@ def search(self,
 
                                 for level3 in getattr(level2,levels[3]):
                                     if len(levels)>4 and hasattr(level3,levels[4]):
-                                        print('Cannot go further than level 4')
+                                        print('WARNING: Cannot go further than level 4')
 
                                     elif len(levels)>4 and not hasattr(level3,levels[4]):
                                         for i,a in enumerate(fields):
@@ -425,7 +424,6 @@ def nicemap(catalog=Catalog(),
             default_encoding='iso-8859-15'):
 
     if mapbounds:
-        #print("mapbounds:",mapbounds)
         lons = mapbounds[0]
         lats = mapbounds[1]
     else:
@@ -545,7 +543,7 @@ def nicemap(catalog=Catalog(),
         l=bmap.drawcoastlines(linewidth=.5)
         l.set_alpha(alpha)
     except:
-        print('No coastline')
+        print('WARNING: No coastline')
     #l=bmap.drawstates(linewidth=.5,
     #                  color = 'w')
     #l.set_alpha(alpha)
@@ -612,7 +610,7 @@ def nicemap(catalog=Catalog(),
                       color='white',
                       zorder=3)
             l.set_solid_capstyle('round')
-        print(', '.join(list(set(caption)))+'.')
+        #print(', '.join(list(set(caption)))+'.')
 
     if scale:
         nicemapscale(bmap)
@@ -769,30 +767,30 @@ def map_all(self=None,
         pos=1
         if mainaspectratio>1:
             if insetaspectratio>1:
-                print('HORIZONTAL & horizontal')
+                #print('HORIZONTAL & horizontal')
                 width_ratios=[1, aspectratio-1]
                 height_ratios = [aspectratio-1, 1]
             else:
-                print('HORIZONTAL & vertical')
+                #print('HORIZONTAL & vertical')
                 width_ratios=[1*.86, aspectratio-1]
                 height_ratios = [1]
                 nl=1
         else:
             if insetaspectratio>1:
-                print('VERTICAL & horizontal')
+                #print('VERTICAL & horizontal')
                 nc=1
                 pos=0
                 width_ratios=[1,]
                 height_ratios = [insetaspectratio-1,1*.85]
             else:
-                print('VERTICAL & vertical')
+                #print('VERTICAL & vertical')
                 width_ratios=[1, insetaspectratio]
                 height_ratios = [1/insetaspectratio-1,1]
 
         if colorbar and len(catalog.events)>0 :
             nc+=1
             width_ratios.append(.05)
-            print('cb qspace')
+            #print('cb qspace')
 
 
         gs = matplotlib.gridspec.GridSpec(nl, nc,
@@ -858,7 +856,7 @@ def plot_focmech(event,lineauthors,ax,color='C1'):
           }
     focmec = event.preferred_focal_mechanism()
     if focmec is None:
-        print(event)
+        #print(event)
         return
     fm = [focmec.nodal_planes.nodal_plane_1.strike,
               focmec.nodal_planes.nodal_plane_1.dip,
@@ -902,8 +900,8 @@ def plot_focmech(event,lineauthors,ax,color='C1'):
                     f-=180
                 delta = m.creation_info.creation_time - event.preferred_origin().time
                 alpha = (delta - min(creation_delays)) / (max(creation_delays) - min(creation_delays))
-                print(event.preferred_origin().time, m.creation_info.creation_time, event.magnitudes[0].creation_info.creation_time)
-                print(delta, alpha, 1-alpha**.15)
+                #print(event.preferred_origin().time, m.creation_info.creation_time, event.magnitudes[0].creation_info.creation_time)
+                #print(delta, alpha, 1-alpha**.15)
                 opts['alpha'] = 1-alpha**.2
                 opts['linewidth'] = (1-alpha**.2)
                 
@@ -1157,7 +1155,7 @@ def eewmap(data,
         m+=' The blind zone and EEW delays every %ds are shown with black circles considering the authoritative location.'%delaystep
     m+=' The blind zone can be compared to MMI contours considering the authoritative location (blue circles).'
     m+=' The smallest MMI contour is also represented with the first EEW solution (dash blue circle).'
-    print(m)
+    #print(m)
     
     plot_focmech(data['event'],lineauthors,fig.bmap.ax)
     
