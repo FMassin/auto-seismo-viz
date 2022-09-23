@@ -105,7 +105,7 @@ jobs:
           # Optional unsigned/invalid certificates allowance:
           ignore_cert: true
           # Optional converting Markdown to HTML (set content_type to text/html too):
-          #convert_markdown: true
+          convert_markdown: true
           # Optional attachments:
           attachments: ${{ github.workspace }}/data/*.png
           # Optional priority: 'high', 'normal' (default) or 'low'
