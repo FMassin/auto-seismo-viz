@@ -10,37 +10,30 @@ jobs:
   Viz-EEW-MARN:
     runs-on: ubuntu-latest
     steps:
-      - run: echo "🎉 The job was automatically triggered by a ${{ github.event_name }} event."
-      - run: echo "🐧 This job is now running on a ${{ runner.os }} server hosted by GitHub!"
-      - run: echo "🔎 The name of your branch is ${{ github.ref }} and your repository is ${{ github.repository }}."
-      - name: Check out repository code
+      - name: 🔎 Check out repository code
         uses: actions/checkout@v3
-      - run: echo "💡 The ${{ github.repository }} repository has been cloned to the runner."
       
-      - name: Install python dependencies
+      - name: 🐧 Install python dependencies
         run: |
           python -m pip install --requirement ${{ github.workspace }}/requirements.txt      
-      - run: echo "🖥️ The workflow is now ready to run ${{ github.repository }}."
 
-      - name: Run the main program # add nseconds=9999999999 ndays=9 limit=2 for full test
+      - name: 💡 Run the main program # add nseconds=9999999999 ndays=9 limit=2 for full test
         id: seismoviz
         run: |
           python ${{ github.workspace }}/seismo-viz.py catalog_uri=USGS,${{ secrets.MARN_EEW_URL }} minmagnitude=4 longitude=-89 latitude=13.6 maxradius=2 debug=1 
-      - if: steps.seismoviz.outcome == 'success'
-        run: echo "🖥️ The code in seismo-viz.py from ${{ github.repository }} exited successfully."
       
-      - name: Check file existence
+      - name: 🖥️ Check file existence
         id: check_files
         uses: andstor/file-existence-action@v1
         with:
           files: "data/*.png,data/*ml,data/*seed"
 
-      - name: Archive all data and visuals in workspace
+      - name: 🎁 Archive all data and visuals in workspace  as an artifact for 1 day
         if: steps.check_files.outputs.files_exists == 'true'
         uses: actions/upload-artifact@v3
         id: archive
         with:
-          name: Data-and-Vizuals-UNA
+          name: Data-and-Vizuals-MARN
           path: |
             ${{ github.workspace }}/data/*ml
             ${{ github.workspace }}/data/*seed
@@ -49,10 +42,7 @@ jobs:
           retention-days: 1
           if-no-files-found: error
 
-      - name: Log success 
-        if: steps.archive.outcome == 'success'
-        run: echo "🎁 The data and visuals from ${{ github.workspace }} are archived as an artifact for 1 days."
-      - name: Send mail
+      - name: 🎉 Send mail
         if: steps.archive.outcome == 'success'
         uses: dawidd6/action-send-mail@v3
         with:
@@ -77,7 +67,7 @@ jobs:
           # Required mail subject:
           subject: Github Actions job result
           # Required recipients' addresses:
-          to: fmassin@sed.ethz.ch
+          to: ${{secrets.MAIL_TO}}
           # Required sender full name (address can be skipped):
           from: ${{ github.repository }} # Luke Skywalker # <user@example.com>
           # Optional plain body:
@@ -111,6 +101,197 @@ jobs:
           # Optional priority: 'high', 'normal' (default) or 'low'
           priority: high
       - run: echo "🍏 This job's status is ${{ job.status }}."
+
+  Viz-EEW-INETER:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 🔎 Check out repository code
+        uses: actions/checkout@v3
+      
+      - name: 🐧 Install python dependencies
+        run: |
+          python -m pip install --requirement ${{ github.workspace }}/requirements.txt      
+
+      - name: 💡 Run the main program # add nseconds=9999999999 ndays=9 limit=2 for full test
+        id: seismoviz
+        run: |
+          python ${{ github.workspace }}/seismo-viz.py catalog_uri=USGS,${{ secrets.INETER_EEW_URL }} minmagnitude=4 longitude=-86.5 latitude=12 maxradius=3 debug=1 
+      
+      - name: 🖥️ Check file existence
+        id: check_files
+        uses: andstor/file-existence-action@v1
+        with:
+          files: "data/*.png,data/*ml,data/*seed"
+
+      - name: 🎁 Archive all data and visuals in workspace  as an artifact for 1 day
+        if: steps.check_files.outputs.files_exists == 'true'
+        uses: actions/upload-artifact@v3
+        id: archive
+        with:
+          name: Data-and-Vizuals-INETER
+          path: |
+            ${{ github.workspace }}/data/*ml
+            ${{ github.workspace }}/data/*seed
+            ${{ github.workspace }}/data/*.png 
+            ${{ github.workspace }}/data/*.mp4
+          retention-days: 1
+          if-no-files-found: error
+
+      - name: 🎉 Send mail
+        if: steps.archive.outcome == 'success'
+        uses: dawidd6/action-send-mail@v3
+        with:
+          # Specify connection via URL (replaces server_address, server_port, secure,
+          # username and password)
+          #
+          # Format:
+          #
+          #  * smtp://user:password@server:port
+          #  * smtp+starttls://user:password@server:port
+          #connection_url: ${{secrets.MAIL_CONNECTION}}
+          # Required mail server address if not connection_url:
+          server_address: smtp.gmail.com
+          # Server port, default 25:
+          server_port: 465
+          # Optional whether this connection use TLS (default is true if server_port is 465)
+          secure: true
+          # Optional (recommended): mail server username:
+          username: ${{secrets.MAIL_USERNAME}}
+          # Optional (recommended) mail server password:
+          password: ${{secrets.MAIL_PASSWORD}}
+          # Required mail subject:
+          subject: Github Actions job result
+          # Required recipients' addresses:
+          to: ${{secrets.MAIL_TO}}
+          # Required sender full name (address can be skipped):
+          from: ${{ github.repository }} # Luke Skywalker # <user@example.com>
+          # Optional plain body:
+          body: |
+            <!DOCTYPE html>
+            <html>
+              <head>
+                <title>New event at INETER</title>
+              </head>
+            <body>                  
+                  <p>Event processing of ${{github.repository}} for INETER completed successfully! </p>
+                  <p>Results available for 1 day here ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}</p>
+            </body>
+            </html>
+          # Optional HTML body read from file:
+          #html_body: file://README.html
+          # Optional carbon copy recipients:
+          #cc: kyloren@example.com,leia@example.com
+          # Optional blind carbon copy recipients:
+          #bcc: r2d2@example.com,hansolo@example.com
+          # Optional recipient of the email response:
+          #reply_to: luke@example.com
+          # Optional Message ID this message is replying to:
+          #in_reply_to: <random-luke@example.com>
+          # Optional unsigned/invalid certificates allowance:
+          ignore_cert: true
+          # Optional converting Markdown to HTML (set content_type to text/html too):
+          convert_markdown: true
+          # Optional attachments:
+          attachments: ${{ github.workspace }}/data/*.png
+          # Optional priority: 'high', 'normal' (default) or 'low'
+          priority: high
+      - run: echo "🍏 This job's status is ${{ job.status }}."
+    
+  Viz-EEW-UNA:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 🔎 Check out repository code
+        uses: actions/checkout@v3
+      
+      - name: 🐧 Install python dependencies
+        run: |
+          python -m pip install --requirement ${{ github.workspace }}/requirements.txt      
+
+      - name: 💡 Run the main program # add nseconds=9999999999 ndays=9 limit=2 for full test
+        id: seismoviz
+        run: |
+          python ${{ github.workspace }}/seismo-viz.py catalog_uri=USGS,${{ secrets.UNA_EEW_URL }} minmagnitude=4 longitude=-84.2 latitude=9.5 maxradius=3 debug=1 
+      
+      - name: 🖥️ Check file existence
+        id: check_files
+        uses: andstor/file-existence-action@v1
+        with:
+          files: "data/*.png,data/*ml,data/*seed"
+
+      - name: 🎁 Archive all data and visuals in workspace  as an artifact for 1 day
+        if: steps.check_files.outputs.files_exists == 'true'
+        uses: actions/upload-artifact@v3
+        id: archive
+        with:
+          name: Data-and-Vizuals-UNA
+          path: |
+            ${{ github.workspace }}/data/*ml
+            ${{ github.workspace }}/data/*seed
+            ${{ github.workspace }}/data/*.png 
+            ${{ github.workspace }}/data/*.mp4
+          retention-days: 1
+          if-no-files-found: error
+
+      - name: 🎉 Send mail
+        if: steps.archive.outcome == 'success'
+        uses: dawidd6/action-send-mail@v3
+        with:
+          # Specify connection via URL (replaces server_address, server_port, secure,
+          # username and password)
+          #
+          # Format:
+          #
+          #  * smtp://user:password@server:port
+          #  * smtp+starttls://user:password@server:port
+          #connection_url: ${{secrets.MAIL_CONNECTION}}
+          # Required mail server address if not connection_url:
+          server_address: smtp.gmail.com
+          # Server port, default 25:
+          server_port: 465
+          # Optional whether this connection use TLS (default is true if server_port is 465)
+          secure: true
+          # Optional (recommended): mail server username:
+          username: ${{secrets.MAIL_USERNAME}}
+          # Optional (recommended) mail server password:
+          password: ${{secrets.MAIL_PASSWORD}}
+          # Required mail subject:
+          subject: Github Actions job result
+          # Required recipients' addresses:
+          to: ${{secrets.MAIL_TO}}
+          # Required sender full name (address can be skipped):
+          from: ${{ github.repository }} # Luke Skywalker # <user@example.com>
+          # Optional plain body:
+          body: |
+            <!DOCTYPE html>
+            <html>
+              <head>
+                <title>New event at UNA</title>
+              </head>
+            <body>                  
+                  <p>Event processing of ${{github.repository}} for UNA completed successfully! </p>
+                  <p>Results available for 1 day here ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}</p>
+            </body>
+            </html>
+          # Optional HTML body read from file:
+          #html_body: file://README.html
+          # Optional carbon copy recipients:
+          #cc: kyloren@example.com,leia@example.com
+          # Optional blind carbon copy recipients:
+          #bcc: r2d2@example.com,hansolo@example.com
+          # Optional recipient of the email response:
+          #reply_to: luke@example.com
+          # Optional Message ID this message is replying to:
+          #in_reply_to: <random-luke@example.com>
+          # Optional unsigned/invalid certificates allowance:
+          ignore_cert: true
+          # Optional converting Markdown to HTML (set content_type to text/html too):
+          convert_markdown: true
+          # Optional attachments:
+          attachments: ${{ github.workspace }}/data/*.png
+          # Optional priority: 'high', 'normal' (default) or 'low'
+          priority: high
+      - run: echo "🍏 This job's status is ${{ job.status }}."
+    
 
 
 # python ${{ github.workspace }}/seismo-viz.py catalog_uri='USGS',${{ secrets.UNA_EEW_URL }} stream_url=${{ secrets.UNA_EEW_URL }} minmagnitude=4 longitude=-84 latitude=9.5 maxradius=3 debug=1
