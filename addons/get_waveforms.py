@@ -58,7 +58,71 @@ def attach_distance(self,
     
     return self.sort(keys=['distance'])
 
-def inventory2bulkrequest(self,
+def event2stations_bulk(self,
+                           origin,
+                           endafter=40,
+                           model = TauPyModel(),
+                           debug=False,
+                           location='*', 
+                           channel='SN*,SH*,EN*,EH*,HN*,HH*,HG*'):
+    allthes = []
+    for mseedid in self.get_contents()['channels']:
+        nsc = self.select(*mseedid.split('.'))
+        s=(nsc[0].code, nsc[0][0].code)       
+        epr = locations2degrees_origin2channel(origin,nsc[0][0][0])
+        receiver_depth_in_km=nsc[0][0][0].elevation/-1000
+        arrivals = model.get_travel_times(origin.depth/1000,
+                                            distance_in_degree=epr,
+                                            phase_list=['tts'],
+                                            #receiver_depth_in_km=receiver_depth_in_km
+                                            )
+        allthes += [numpy.nanmin([ a.time for a in arrivals ])]
+    firsts=numpy.nanmin(allthes)
+
+    bulk = []
+    done=[]
+    if debug:
+        print('Requesting:')
+    for mseedid in self.get_contents()['channels']:
+
+        nsc = self.select(*mseedid.split('.'))
+        s=(nsc[0].code, nsc[0][0].code)
+        if s in done:
+            continue
+        done+=[s]
+        
+        epr = locations2degrees_origin2channel(origin,nsc[0][0][0])
+        receiver_depth_in_km=nsc[0][0][0].elevation/-1000
+        arrivals = model.get_travel_times(origin.depth/1000,
+                                            distance_in_degree=epr,
+                                            phase_list=['ttp'],
+                                            #receiver_depth_in_km=receiver_depth_in_km
+                                            )
+        p = numpy.nanmin([ a.time for a in arrivals ])
+
+        arrivals = model.get_travel_times(origin.depth/1000,
+                                            distance_in_degree=epr,
+                                            phase_list=['tts'],
+                                            #receiver_depth_in_km=receiver_depth_in_km
+                                            )
+        s = numpy.nanmin([ a.time for a in arrivals ])
+
+        if s > firsts+endafter:
+            if debug:
+                print("%s.%s is too far: %f > %f+%f"%(nsc[0].code, nsc[0][0].code,s,firsts,endafter))
+            continue
+
+        bulk += [(nsc[0].code, 
+                  nsc[0][0].code, 
+                  location, 
+                  channel, 
+                  origin.time+p/2, 
+                  origin.time+s+(s-p))]
+        if debug:
+            print("%s.%s.%s.%s [%s, %s]"%bulk[-1],'Ot+%.3g deg'%epr)
+    return bulk
+
+def inventory2waveforms_bulk(self,
                           origin,
                           model = TauPyModel(),
                           debug=False,
@@ -229,7 +293,7 @@ def remove_sensitivity(eventstreams,
 def get_events_waveforms(self,
                          catalog,
                          inventory_client=None,
-                         maxPtraveltime=40.,
+                         maxStraveltime=40.,
                          location='*', 
                          channel='SN*,SH*,EN*,EH*,HN*,HH*,HG*',
                          model=TauPyModel('iasp91'),
@@ -246,6 +310,7 @@ def get_events_waveforms(self,
     bulkargs = {'quality':quality,
                 'minimumlength':minimumlength,
                 'longestonly':longestonly}
+
     inv2bulkargs = {'model':model,
                     'location':location,
                     'channel':channel,
@@ -255,35 +320,28 @@ def get_events_waveforms(self,
     eventinventories=[]
     for event in catalog:
         origin = event.preferred_origin()
-        maxt=-9
-        for o in event.origins :
-            for arrival in o.arrivals:
-                t = arrival.pick_id.get_referred_object().time
-                if t is None or not t > 0:
-                    continue
-                if  arrival.time_residual is None or arrival.time_residual>5 :
-                    continue
-                if  arrival.time_weight is None or arrival.time_weight<=0 :
-                    continue
-                if t <= maxt:
-                    continue
-                if t >= origin.time+maxPtraveltime:
-                    continue
-                maxt = t         
-        endafter = maxt - origin.time 
-        inventory = inventory_client.get_stations(level='response',
-                                      startbefore=origin.time,
-                                      endafter=origin.time+endafter,
-                                      latitude=origin.latitude,
-                                      longitude=origin.longitude,
-                                      maxradius=endafter*6/111,
-                                      **kwargs)
+
+        # Get all stations without resp
+        inventory = inventory_client.get_stations(level='channel',
+                                                  channel=channel,
+                                                  startbefore=origin.time,
+                                                  endafter=origin.time+maxStraveltime*9)
+        # Get stations with S within first S + maxStraveltime
+        bulk = event2stations_bulk(inventory,
+                                   origin,
+                                   endafter=maxStraveltime,
+                                   **inv2bulkargs)
+        inventory = inventory_client.get_stations_bulk(bulk,
+                                                       level='response',
+                                                       **kwargs)
+        # Fix response with bad units
         inventory = fixrespunit(inventory,debug=debug)
         eventinventories += [inventory]
 
-        bulk = inventory2bulkrequest(inventory,
-                                     origin,
-                                     **inv2bulkargs)
+        # Get data from ttp/2 to tts+tts-ttp
+        bulk = inventory2waveforms_bulk(inventory,
+                                        origin,
+                                        **inv2bulkargs)
         stream = self.get_waveforms_bulk(bulk,**bulkargs)
 
         # Remove traces without response

@@ -923,8 +923,6 @@ def plot_focmech(event,lineauthors,ax,color='C1'):
     axins.set(xlim=(-50, 50), ylim=(-50, 50))
     
 def eewmap(data,
-           radius=110000,
-           delaystep=1,
            vs=3.7,
            drawline=True,
            title=True,
@@ -937,7 +935,33 @@ def eewmap(data,
     magnitude = data['event'].preferred_magnitude()
     lineauthors = scfinderauthor(origin, lineauthors=lineauthors)
 
+    minlatitude=origin.latitude
+    maxlatitude=origin.latitude
+    minlongitude=origin.longitude
+    maxlongitude=origin.longitude
+    for n in data['inventory']:
+        for s in n:
+            if minlatitude > s.latitude:
+                minlatitude = s.latitude
+            if maxlatitude < s.latitude:
+                maxlatitude = s.latitude
+            if minlongitude > s.longitude:
+                minlongitude = s.longitude
+            if maxlongitude < s.longitude:
+                maxlongitude = s.longitude
     
+    radius = max([ gps2dist_azimuth(origin.latitude,origin.longitude,
+                                    origin.latitude,minlongitude)[0],
+                   gps2dist_azimuth(origin.latitude,origin.longitude,
+                                    minlatitude,origin.longitude)[0],
+                   gps2dist_azimuth(origin.latitude,origin.longitude,
+                                    origin.latitude,maxlongitude)[0],
+                   gps2dist_azimuth(origin.latitude,origin.longitude,
+                                    maxlatitude,origin.longitude)[0] ])
+    possibledelaysteps=[1,2,5,10,20,50,100]
+    delaystep=numpy.argmin( [ abs(s-radius/10/vs/1000) for s in possibledelaysteps])
+    delaystep=possibledelaysteps[delaystep]
+
     longitude_radius = 0
     km=0
     while km<=radius:
@@ -956,16 +980,13 @@ def eewmap(data,
                                                        origin.longitude)
         latitude_radius+=0.001
     
-    fig,ax,bmap = map_all(data['inventory'].select(minlatitude=origin.latitude-latitude_radius, 
-                                                                        maxlatitude=origin.latitude+latitude_radius, 
-                                                                        minlongitude=origin.longitude-longitude_radius,
-                                                                        maxlongitude=min([180,origin.longitude+longitude_radius])),
-                                                mapbounds=[[origin.longitude-longitude_radius,
-                                                            origin.longitude+longitude_radius],
-                                                           [origin.latitude-latitude_radius,
-                                                            origin.latitude+latitude_radius]],
-                                                            stationgroups=stationgroups,
-                                                **kwargs)
+    fig,ax,bmap = map_all(data['inventory'],
+                          mapbounds=[[origin.longitude-longitude_radius,
+                                      origin.longitude+longitude_radius],
+                                     [origin.latitude-latitude_radius,
+                                      origin.latitude+latitude_radius]],
+                          stationgroups=stationgroups,
+                          **kwargs)
         
     plot_eewsourcepoints(event=data['event'],
                          bmap=fig.bmap)
@@ -1096,7 +1117,7 @@ def eewmap(data,
 
     
     if delaystep is not None and delaystep>0:
-        delay=-1
+        delay=0
         while dblind<radius/1000:#*1.5:
             delay += delaystep
             dblind = fmodel(max([0.01, magnitudes[0].creation_info.creation_time - origin.time + delay]))

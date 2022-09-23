@@ -71,7 +71,8 @@ def event_data(catalog_uri='USGS',
     if nseconds is not None :
         nseconds = float(nseconds)
     updated_after = UTCDateTime.now()-nseconds
-    get_events_wargs['starttime'] = UTCDateTime.now()-ndays*24*60*60
+    if 'starttime' not in get_events_wargs:
+        get_events_wargs['starttime'] = UTCDateTime.now()-ndays*24*60*60
     if 'longitude' in get_events_wargs :
         get_events_wargs['longitude'] = float(get_events_wargs['longitude'])
     if 'latitude' in get_events_wargs :
@@ -141,10 +142,8 @@ def event_plots(catalog,eventstreams,eventinventories):
         ## Map results
         fig = eewmap({'event':event,
                     'inventory':inventory},
-                    radius=150000,
                     reference=False,
-                    stationgroups={},
-                    delaystep=2)
+                    stationgroups={})
         fig.savefig('data/%s_map.png'%shorteventid,**saveopt)
         print('data/%s_map.png'%shorteventid)
 

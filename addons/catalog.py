@@ -614,7 +614,7 @@ def performance_timelines(event,
                           authors=['scvsmag','scvsmag2'],
                           lineauthors=None, #'scfinder'],
                           type='soil',
-                          xlim=59,
+                          #xlim=59,
                           lettering_offset=0):
 
     authors += addons.core.scfinderauthor(event.preferred_origin(),
@@ -959,7 +959,7 @@ def performance_timelines(event,
     if min(axes[3].get_ylim())<1:
         axes[3].set_ylim(bottom=1)
 
-    axes[3].set_xlim([1,xlim])
+    axes[3].set_xlim(left=1)#[1,xlim])
     
     descs = ', '.join([desc.text for desc in event.event_descriptions if 'region' in desc.type])
     t = '%s\nM$_{%s}$%.1f, %s, %.1fkm deep'
