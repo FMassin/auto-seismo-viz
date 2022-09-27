@@ -415,7 +415,9 @@ def nicemap(catalog=Catalog(),
             dark=False,
             mapbounds=None,
             arcgis=True,
-            epsg=5520, # Switzerland
+            epsg = 3857, #anywhere?
+            #epsg=5520, # Switzerland?
+            #epsg=4326 # CAM?
             scale=True,
             server='http://server.arcgisonline.com/ArcGIS',
             service='Ocean/World_Ocean_Base',
@@ -678,20 +680,20 @@ def map_all(self=None,
 
 
     fig, ax, bmap = nicemap(catalog=catalog,
-                  inventory=inventory,
-                  alpha=alpha,
-                  aspectratio=aspectratio,
-                  xpixels=xpixels,
-                  dark=dark,
-                  resolution=resolution,
-                  fontsize=fontsize,
-                  f=fig,
-                  ax=ax,
-                  epsg=epsg,
-                  labels=labels,
-                  shift=1/4.,
-                          reference=reference,
-                  mapbounds=mapbounds,
+                            inventory=inventory,
+                            alpha=alpha,
+                            aspectratio=aspectratio,
+                            xpixels=xpixels,
+                            dark=dark,
+                            resolution=resolution,
+                            fontsize=fontsize,
+                            f=fig,
+                            ax=ax,
+                            epsg=epsg,
+                            labels=labels,
+                            shift=1/4.,
+                            reference=reference,
+                            mapbounds=mapbounds,
                             arcgis=arcgis,
                             scale=scale,
                             server=server,
@@ -922,6 +924,32 @@ def plot_focmech(event,lineauthors,ax,color='C1'):
         
     axins.set(xlim=(-50, 50), ylim=(-50, 50))
     
+def getradius(origin,inventory):
+
+    minlatitude=origin.latitude
+    maxlatitude=origin.latitude
+    minlongitude=origin.longitude
+    maxlongitude=origin.longitude
+    for n in inventory:
+        for s in n:
+            if minlatitude > s.latitude:
+                minlatitude = s.latitude
+            if maxlatitude < s.latitude:
+                maxlatitude = s.latitude
+            if minlongitude > s.longitude:
+                minlongitude = s.longitude
+            if maxlongitude < s.longitude:
+                maxlongitude = s.longitude
+    
+    return max([ gps2dist_azimuth(origin.latitude,origin.longitude,
+                                    origin.latitude,minlongitude)[0],
+                   gps2dist_azimuth(origin.latitude,origin.longitude,
+                                    minlatitude,origin.longitude)[0],
+                   gps2dist_azimuth(origin.latitude,origin.longitude,
+                                    origin.latitude,maxlongitude)[0],
+                   gps2dist_azimuth(origin.latitude,origin.longitude,
+                                    maxlatitude,origin.longitude)[0] ])
+
 def eewmap(data,
            vs=3.7,
            drawline=True,
@@ -935,29 +963,8 @@ def eewmap(data,
     magnitude = data['event'].preferred_magnitude()
     lineauthors = scfinderauthor(origin, lineauthors=lineauthors)
 
-    minlatitude=origin.latitude
-    maxlatitude=origin.latitude
-    minlongitude=origin.longitude
-    maxlongitude=origin.longitude
-    for n in data['inventory']:
-        for s in n:
-            if minlatitude > s.latitude:
-                minlatitude = s.latitude
-            if maxlatitude < s.latitude:
-                maxlatitude = s.latitude
-            if minlongitude > s.longitude:
-                minlongitude = s.longitude
-            if maxlongitude < s.longitude:
-                maxlongitude = s.longitude
-    
-    radius = max([ gps2dist_azimuth(origin.latitude,origin.longitude,
-                                    origin.latitude,minlongitude)[0],
-                   gps2dist_azimuth(origin.latitude,origin.longitude,
-                                    minlatitude,origin.longitude)[0],
-                   gps2dist_azimuth(origin.latitude,origin.longitude,
-                                    origin.latitude,maxlongitude)[0],
-                   gps2dist_azimuth(origin.latitude,origin.longitude,
-                                    maxlatitude,origin.longitude)[0] ])
+    radius = getradius(origin,data['inventory'])
+
     possibledelaysteps=[1,2,5,10,20,50,100]
     delaystep=numpy.argmin( [ abs(s-radius/10/vs/1000) for s in possibledelaysteps])
     delaystep=possibledelaysteps[delaystep]

@@ -174,6 +174,10 @@ def match_events(self=Catalog(),
             matchs.events.append(meme)
             listfound.append(memi)
 
+            for prefatt in [ 'preferred_origin_id', 'preferred_magnitude_id' ]:
+                if hasattr(e, prefatt):
+                    matchs.events[-1][prefatt] = e[prefatt]
+
             #for prefatt in [ 'preferred_origin_id', 'preferred_magnitude_id' ]:
             #    if hasattr(meme, prefatt):
             #        matchs.events[-1][prefatt] = meme[prefatt]

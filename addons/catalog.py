@@ -611,12 +611,19 @@ def performance_timelines(event,
                           stations=None,
                           vs=3.7,
                           magnitude_types=['Mfd','MVS'],
-                          authors=['scvsmag','scvsmag2'],
+                          authors=['scvsmag2','scvsmag'],
                           lineauthors=None, #'scfinder'],
                           type='soil',
                           #xlim=59,
                           lettering_offset=0):
 
+    for author in authors:
+            if author in [m.creation_info.author.split('@')[0] for m in event.magnitudes if m.creation_info.author is not None]:
+                print("Old author list:",authors)
+                authors= [author]
+                print("New author list:",authors)
+                break
+            
     authors += addons.core.scfinderauthor(event.preferred_origin(),
                                           lineauthors=lineauthors)
     w,h=matplotlib.figure.figaspect(1.)

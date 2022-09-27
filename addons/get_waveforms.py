@@ -195,7 +195,7 @@ def remove_response(eventstreams,
     return eventstreams
 
 def remove_sensitivity(eventstreams,
-                       outputs=['acc'],#['acc','vel','disp']
+                       outputs=['acc','disp'],#['acc','vel','disp']
                        filters={'pre':None,#{'type':'highpass','freq':0.075},
                                 'acc':None,
                                 'vel':None,
@@ -332,8 +332,9 @@ def get_events_waveforms(self,
                                    endafter=maxStraveltime,
                                    **inv2bulkargs)
         inventory = inventory_client.get_stations_bulk(bulk,
-                                                       level='response',
-                                                       **kwargs)
+                                                    level='response',
+                                                    **kwargs)
+
         # Fix response with bad units
         inventory = fixrespunit(inventory,debug=debug)
         eventinventories += [inventory]

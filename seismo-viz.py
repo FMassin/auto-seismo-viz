@@ -3,19 +3,20 @@ from obspy.clients.fdsn import Client
 from obspy.core import UTCDateTime
 from sys import argv
 from re import sub
-import os
+import os,glob
 from addons.get_events import get_events_updatedafter
-from addons.get_waveforms import get_events_waveforms
+from addons.get_waveforms import get_events_waveforms,attach_distance
 from addons.stream import ploteqdata,combinechannels
 from addons.core import eewmap
 from addons.catalog import performance_timelines
+from addons.event import animate
 
 def event_data(catalog_uri='USGS',
          inventory_url=None,
          stream_url=None,
          files=None,
          ndays=4,
-         nseconds=15*60,
+         nseconds=3*15*60, # Updates 3 times at most in case it's ran every 15 min
          user=None, 
          password=None, 
          debug=False, 
@@ -33,7 +34,7 @@ def event_data(catalog_uri='USGS',
             print('Expecting files=<Ev. catalog>,<ev#1 stream (%s for "raw" and "acc")>,<ev#1 inventory>,<ev#2 stream>,<ev#2 inventory>...')
         
         catalog = read_events(files[0])
-        eventstreams = [{o:read(f%o) for o in ['raw','acc']} for f in files[1::2] ]
+        eventstreams = [{o:read(f%o) for o in ['raw','acc','disp'] } for f in files[1::2] ]
         eventinventories = [read_inventory(f) for f in files[2::2]]
         return catalog,eventstreams,eventinventories
 
@@ -123,38 +124,52 @@ def event_plots(catalog,eventstreams,eventinventories):
 
         shorteventid = str(event.resource_id).split('/')[-1]
 
-        ## Removing bad channels from plots
-        for tr in streams['acc'].select(location='99'):
-            streams['acc'].remove(tr)
+        ## Post processing seismic data
+        for output, stream in streams.items():
 
-        ## Combine horizontal data
-        tridim , horiz = combinechannels(streams['acc'], combine='both')
-        streams['acc'] += horiz.select(channel='*b')
+            ## Removing bad channels from plots
+            for tr in streams[output].select(location='99'):
+                streams[output].remove(tr)
+            
+            # Improve waveforms attributes
+            stream.attach_response(inventory)
+            streams[output] = attach_distance(streams[output],inventory,event.preferred_origin())
 
+            ## Combine horizontal data
+            tridim , horiz = combinechannels(streams[output], combine='both')
+            streams[output] += horiz.select(channel='*b')
 
-        ## Plot data
-        fig = ploteqdata(streams['acc'].select(channel='*b'),event,inventory,lim=999)
-        fig.tight_layout()
-        fig.savefig('data/%s_data.png'%shorteventid,**saveopt)
-        print('data/%s_data.png'%shorteventid)
-
-
-        ## Map results
-        fig = eewmap({'event':event,
-                    'inventory':inventory},
-                    reference=False,
-                    stationgroups={})
-        fig.savefig('data/%s_map.png'%shorteventid,**saveopt)
-        print('data/%s_map.png'%shorteventid)
+        if True:
+            ## Plot data
+            fig = ploteqdata(streams['acc'].select(channel='*b'),event,inventory,lim=999)
+            fig.tight_layout()
+            fig.savefig('data/%s_data.png'%shorteventid,**saveopt)
+            print('data/%s_data.png'%shorteventid)
 
 
-        ## Plot results timeline
-        fig = performance_timelines(event)
-        fig.savefig('data/%s_timeline.png'%shorteventid,**saveopt)
+            ## Map results
+            fig = eewmap({'event':event,
+                        'inventory':inventory},
+                        reference=False,
+                        stationgroups={})
+            fig.savefig('data/%s_map.png'%shorteventid,**saveopt)
+            print('data/%s_map.png'%shorteventid)
 
 
-        ## Animate data and results
-        #
+            ## Plot results timeline
+            fig = performance_timelines(event)
+            fig.savefig('data/%s_timeline.png'%shorteventid,**saveopt)
+            print('data/%s_timeline.png'%shorteventid)
+
+
+        if False:
+            ## Animate data and results
+            anim = animate(event,
+                        streams['acc'],
+                        streams['disp'],
+                        inventory)
+            anim.save('data/%s_anim.mp4'%shorteventid)#,dpi=300)
+            print('data/%s_anim.mp4'%shorteventid)
 
 if __name__ == '__main__':
 
