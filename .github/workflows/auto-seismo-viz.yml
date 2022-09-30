@@ -115,7 +115,7 @@ jobs:
       - name: 💡 Run the main program # add nseconds=9999999999 ndays=9 limit=2 for full test
         id: seismoviz
         run: |
-          python ${{ github.workspace }}/seismo-viz.py catalog_uri=USGS,${{ secrets.INETER_EEW_URL }} minmagnitude=4 longitude=-86.5 latitude=12 maxradius=3 debug=1 
+          python ${{ github.workspace }}/seismo-viz.py catalog_uri=USGS,${{ secrets.INETER_EEW_URL }} inventory_url=${{ secrets.INETER_DATA_URL }} stream_url=${{ secrets.INETER_DATA_URL }}  minmagnitude=4 longitude=-86.5 latitude=12 maxradius=3 debug=1 
       
       - name: 🖥️ Check file existence
         id: check_files
