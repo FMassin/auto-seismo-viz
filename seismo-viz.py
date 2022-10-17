@@ -5,7 +5,7 @@ from sys import argv
 from re import sub
 import os,glob
 from addons.get_events import get_events_updatedafter
-from addons.get_waveforms import get_events_waveforms,attach_distance
+from addons.get_waveforms import get_events_waveforms,attach_distance,clean_inventorystream
 from addons.stream import ploteqdata,combinechannels
 from addons.core import eewmap
 from addons.catalog import performance_timelines
@@ -36,6 +36,25 @@ def event_data(catalog_uri='USGS',
         catalog = read_events(files[0])
         eventstreams = [{o:read(f%o) for o in ['raw','acc','disp'] } for f in files[1::2] ]
         eventinventories = [read_inventory(f) for f in files[2::2]]
+
+        for e,event in enumerate(catalog):
+            for output, stream in eventstreams[e].items():
+
+                ## Removing bad channels from plots
+                for tr in eventstreams[e][output].select(location='99'):
+                    eventstreams[e][output].remove(tr)
+                
+                # Remove empty (meta)data 
+                eventinventories[e],eventstreams[e][output] = clean_inventorystream(eventinventories[e],eventstreams[e][output])
+                
+                # Improve waveforms attributes
+                eventstreams[e][output].attach_response(eventinventories[e])
+                eventstreams[e][output] = attach_distance(eventstreams[e][output],eventinventories[e],event.preferred_origin())
+
+                ## Combine horizontal data
+                tridim , horiz = combinechannels(eventstreams[e][output], combine='both')
+                eventstreams[e][output] += horiz.select(channel='*b')
+
         return catalog,eventstreams,eventinventories
 
 
@@ -125,21 +144,6 @@ def event_plots(catalog,eventstreams,eventinventories):
 
         shorteventid = str(event.resource_id).split('/')[-1]
 
-        ## Post processing seismic data
-        for output, stream in streams.items():
-
-            ## Removing bad channels from plots
-            for tr in streams[output].select(location='99'):
-                streams[output].remove(tr)
-            
-            # Improve waveforms attributes
-            stream.attach_response(inventory)
-            streams[output] = attach_distance(streams[output],inventory,event.preferred_origin())
-
-            ## Combine horizontal data
-            tridim , horiz = combinechannels(streams[output], combine='both')
-            streams[output] += horiz.select(channel='*b')
-
         if True:
             ## Plot data
             fig = ploteqdata(streams['acc'].select(channel='*b'),event,inventory,lim=999)
@@ -157,7 +161,6 @@ def event_plots(catalog,eventstreams,eventinventories):
 
 
             ## Plot results timeline
-            # To do : Fix issue with time axis
             fig = performance_timelines(event)
             fig.savefig('data/%s_timeline.png'%shorteventid,bbox_inches='tight',**saveopt)
             print('data/%s_timeline.png'%shorteventid)

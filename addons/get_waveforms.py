@@ -290,6 +290,34 @@ def remove_sensitivity(eventstreams,
             
     return eventstreams
 
+def clean_inventorystream(inventory,stream):
+    #Remove traces without response, cha, sta, net without data from inventory
+    for tr in stream:
+        try:
+            inventory.get_response(tr.id, tr.stats.starttime)
+        except:
+            print('Cannot find response for',tr)
+            stream.remove(tr)
+
+    rmcha=[]
+    for n, net in enumerate(inventory):
+        for s,sta in enumerate(net):
+            for c,cha in enumerate(sta):
+                mseedid = {'network':net.code,
+                           'station':sta.code,
+                           'location':cha.location_code,
+                           'channel':cha.code}
+                if not len(stream.select(**mseedid)):
+                    #print('Cannot find data for',mseedid)
+                    rmcha+=[mseedid]
+            
+    for mseedid in rmcha:
+        print('Removing',' '.join(["%s: %s"%(k,mseedid[k]) for k in mseedid]))
+        tmp = inventory.remove(**mseedid)
+        inventory = tmp
+    
+    return inventory,stream
+
 def get_events_waveforms(self,
                          catalog,
                          inventory_client=None,
@@ -345,16 +373,9 @@ def get_events_waveforms(self,
                                         **inv2bulkargs)
         stream = self.get_waveforms_bulk(bulk,**bulkargs)
 
-        # Remove traces without response
-        for tr in stream:
-            try:
-                inventory.get_response(tr.id, tr.stats.starttime)
-            except:
-                print('Cannot find response for',tr)
-                stream.remove(tr)
+        # Remove empty (meta)data 
+        inventory,stream = clean_inventorystream(inventory,stream)
 
-        # To do : Remove cha, sta, net without data from inventory
-        
         # Improve waveforms attributes
         if debug:
             print('Attaching response')
