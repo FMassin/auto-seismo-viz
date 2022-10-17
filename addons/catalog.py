@@ -951,7 +951,8 @@ def performance_timelines(event,
     axes[3].set_yticklabels(['I','II','III','IV','V','VI','VII','VIII','IX','X','XI','XII'])
     axes[3].set_ylim(lim)
     top=max([max(axesdata[3]['y'][key][1:]+data['yep'][key][1:]) for key in axesdata[3]['y']])
-    axes[3].set_ylim(top=top+.3)
+    bot=numpy.nanmin([numpy.nanmin([axesdata[3]['y'][key][i]-data['yem'][key][i] for i in range(len(axesdata[3]['y'][key]))]) for key in axesdata[3]['y']])
+    axes[3].set_ylim([bot-.3,top+.3])
     #axes[3].set_ylim(bottom=1)
 
     lab='Time after origin (second)'
@@ -963,11 +964,14 @@ def performance_timelines(event,
         pass#axes[0].set_ylim(bottom=4)
     if max(axes[3].get_ylim())>40:
         axes[3].set_ylim(top=40)
-    if min(axes[3].get_ylim())<1:
-        axes[3].set_ylim(bottom=1)
+    #if min(axes[3].get_ylim())<1:
+    #    axes[3].set_ylim(bottom=1)
 
-    xlim = numpy.nanmax([numpy.nanmax(axesdata[0]['x']) for key in axesdata[0]['x']])
-    axes[3].set_xlim([1,xlim])
+    xlim = numpy.nanmax([numpy.nanmax(axesdata[0]['x'][key]) for key in axesdata[0]['x']])
+    #print([axesdata[0]['x'][key] for key in axesdata[0]['x']])
+    #print(xlim)
+    axes[3].set_xlim([1,xlim+xlim/9])
+    #axes[3].set_xlim(left=1)#,xlim])
     
     descs = ', '.join([desc.text for desc in event.event_descriptions if 'region' in desc.type])
     t = '%s\nM$_{%s}$%.1f, %s, %.1fkm deep'

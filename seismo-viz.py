@@ -153,14 +153,14 @@ def event_plots(catalog,eventstreams,eventinventories):
                         'inventory':inventory},
                         reference=False,
                         stationgroups={})
-            fig.savefig('data/%s_map.png'%shorteventid,**saveopt)
+            fig.savefig('data/%s_map.png'%shorteventid,bbox_inches='tight',**saveopt)
             print('data/%s_map.png'%shorteventid)
 
 
             ## Plot results timeline
             # To do : Fix issue with time axis
             fig = performance_timelines(event)
-            fig.savefig('data/%s_timeline.png'%shorteventid,**saveopt)
+            fig.savefig('data/%s_timeline.png'%shorteventid,bbox_inches='tight',**saveopt)
             print('data/%s_timeline.png'%shorteventid)
 
 

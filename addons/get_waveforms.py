@@ -352,6 +352,8 @@ def get_events_waveforms(self,
             except:
                 print('Cannot find response for',tr)
                 stream.remove(tr)
+
+        # To do : Remove cha, sta, net without data from inventory
         
         # Improve waveforms attributes
         if debug:
