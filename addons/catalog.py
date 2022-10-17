@@ -966,7 +966,8 @@ def performance_timelines(event,
     if min(axes[3].get_ylim())<1:
         axes[3].set_ylim(bottom=1)
 
-    axes[3].set_xlim(left=1)#[1,xlim])
+    xlim = numpy.nanmax([numpy.nanmax(axesdata[0]['x']) for key in axesdata[0]['x']])
+    axes[3].set_xlim([1,xlim])
     
     descs = ', '.join([desc.text for desc in event.event_descriptions if 'region' in desc.type])
     t = '%s\nM$_{%s}$%.1f, %s, %.1fkm deep'
