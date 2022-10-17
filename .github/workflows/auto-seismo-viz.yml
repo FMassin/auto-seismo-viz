@@ -255,7 +255,7 @@ jobs:
             </body>
             </html> 
           contentType: text/html
-          attachments: '[{"path":"${{ github.workspace }}/data/*.png"}]'
+          #attachments: '[{"path":"${{ github.workspace }}/data/*.png"}]'
 
       - run: echo "🍏 This job's status is ${{ job.status }}."
     
