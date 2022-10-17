@@ -234,7 +234,7 @@ jobs:
 
       - name: 🎉 Send email
         if: steps.archive.outcome == 'success'
-        uses: devellany/send-mailer@v1.0.2
+        uses: devellany/send-mail@v1.0.2
         with:
           host: smtp.google.com
           account: ${{secrets.MAIL_USERNAME}}
