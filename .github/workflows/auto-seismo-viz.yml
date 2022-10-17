@@ -261,10 +261,15 @@ jobs:
           # Required sender full name (address can be skipped):
           from: ${{ github.repository }} # Luke Skywalker # <user@example.com>
           # Optional plain body:
-          body: |
-            <h1>New event at UNA</h1>                
-            <p>Event processing of ${{github.repository}} for UNA completed successfully! </p>
-            <p>Results available for 1 day here ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }} </p>
+          html_body: |
+              <!DOCTYPE html>
+              <html>
+              <body>
+              <h1>New event at UNA</h1>
+              <p>Event processing of ${{github.repository}} for UNA completed successfully! </p>
+              <p>Results available for 1 day here ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }} </p>
+              </body>
+              </html>
           # Optional HTML body read from file:
           #html_body: file://README.html
           # Optional carbon copy recipients:
@@ -278,7 +283,7 @@ jobs:
           # Optional unsigned/invalid certificates allowance:
           ignore_cert: true
           # Optional converting Markdown to HTML (set content_type to text/html too):
-          convert_markdown: true
+          #convert_markdown: true
           # Optional attachments:
           attachments: ${{ github.workspace }}/data/*.png
           # Optional priority: 'high', 'normal' (default) or 'low'
