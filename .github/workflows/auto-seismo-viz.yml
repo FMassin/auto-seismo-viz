@@ -237,25 +237,25 @@ jobs:
         uses: devellany/send-mailer@v1.0.2
         with:
           host: smtp.google.com
-            account: ${{secrets.MAIL_USERNAME}}
-            password: ${{secrets.MAIL_PASSWORD}}
-            sender: ${{ github.repository }}
-            from: ${{secrets.MAIL_USERNAME}}@gmail.com
-            to: ${{secrets.MAIL_TO}}
-            subject: New event at UNA
-            body: |
-              <!DOCTYPE html>
-              <html>
-                <head>
-                  <title>New event at UNA</title>
-                </head>
-              <body>                  
-                    <p>Event processing of ${{github.repository}} for UNA completed successfully! </p>
-                    <p>Results available for 1 day here ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }} </p>
-              </body>
-              </html> 
-            contentType: text/html
-            attachments: ${{ github.workspace }}/data/*.png
+          account: ${{secrets.MAIL_USERNAME}}
+          password: ${{secrets.MAIL_PASSWORD}}
+          sender: ${{ github.repository }}
+          from: ${{secrets.MAIL_USERNAME}}@gmail.com
+          to: ${{secrets.MAIL_TO}}
+          subject: New event at UNA
+          body: |
+            <!DOCTYPE html>
+            <html>
+              <head>
+                <title>New event at UNA</title>
+              </head>
+            <body>                  
+                  <p>Event processing of ${{github.repository}} for UNA completed successfully! </p>
+                  <p>Results available for 1 day here ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }} </p>
+            </body>
+            </html> 
+          contentType: text/html
+          attachments: ${{ github.workspace }}/data/*.png
 
       - run: echo "🍏 This job's status is ${{ job.status }}."
     
