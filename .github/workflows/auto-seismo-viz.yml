@@ -262,16 +262,9 @@ jobs:
           from: ${{ github.repository }} # Luke Skywalker # <user@example.com>
           # Optional plain body:
           body: |
-            <!DOCTYPE html>
-            <html>
-              <head>
-                <title>New event at UNA</title>
-              </head>
-            <body>                  
-                  <p>Event processing of ${{github.repository}} for UNA completed successfully! </p>
-                  <p>Results available for 1 day here ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }} </p>
-            </body>
-            </html>
+            <h1>New event at UNA</h1>                
+            <p>Event processing of ${{github.repository}} for UNA completed successfully! </p>
+            <p>Results available for 1 day here ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }} </p>
           content_type: text/html
           # Optional HTML body read from file:
           #html_body: file://README.html

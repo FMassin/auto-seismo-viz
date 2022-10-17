@@ -144,9 +144,8 @@ def event_plots(catalog,eventstreams,eventinventories):
             ## Plot data
             fig = ploteqdata(streams['acc'].select(channel='*b'),event,inventory,lim=999)
             fig.tight_layout()
-            fig.savefig('data/%s_data.png'%shorteventid,**saveopt)
+            fig.savefig('data/%s_data.png'%shorteventid,bbox_inches=None,**saveopt)
             print('data/%s_data.png'%shorteventid)
-
 
             ## Map results
             fig = eewmap({'event':event,
@@ -165,6 +164,7 @@ def event_plots(catalog,eventstreams,eventinventories):
 
 
         else:
+        
             ## Animate data and results
             anim = animate(event,
                         streams['acc'],
