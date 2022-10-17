@@ -84,6 +84,7 @@ def event_data(catalog_uri='USGS',
     catalog = get_events_updatedafter(catalog_clients,
                                       updated_after=updated_after,
                                       **get_events_wargs)
+    # To do : Remove cha, sta, net without data from inventory
     eventstreams,eventinventories = get_events_waveforms(stream_client,
                                                          catalog,
                                                          inventory_client=inventory_client)
@@ -157,12 +158,13 @@ def event_plots(catalog,eventstreams,eventinventories):
 
 
             ## Plot results timeline
+            # To do : Fix issue with time axis
             fig = performance_timelines(event)
             fig.savefig('data/%s_timeline.png'%shorteventid,**saveopt)
             print('data/%s_timeline.png'%shorteventid)
 
 
-        if False:
+        else:
             ## Animate data and results
             anim = animate(event,
                         streams['acc'],
@@ -190,6 +192,7 @@ if __name__ == '__main__':
     event_plots(catalog,eventstreams,eventinventories)
 
     # To do:
+    # - add agency
     # - webhook notif
     # - html or panel report
     # - station and event tables
