@@ -16,11 +16,12 @@ def event_data(catalog_uri='USGS',
          stream_url=None,
          files=None,
          ndays=4,
-         nseconds=60*60, # Updates 3 times at most in case it's ran every 15 min
+         nseconds=2*60*60, # Runs twice in case tried every hours 
          user=None, 
          password=None, 
          debug=False, 
          timeout=120, 
+         channel='SN*,SH*,EN*,EH*,HN*,HH*,HG*',
          eida_token=None,
          **get_events_wargs):
 
@@ -106,6 +107,7 @@ def event_data(catalog_uri='USGS',
     # To do : Remove cha, sta, net without data from inventory
     eventstreams,eventinventories = get_events_waveforms(stream_client,
                                                          catalog,
+                                                         channel=channel,
                                                          inventory_client=inventory_client)
     
     for event, streams, inventory in zip(catalog,eventstreams,eventinventories):

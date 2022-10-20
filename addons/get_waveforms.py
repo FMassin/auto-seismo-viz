@@ -63,7 +63,7 @@ def event2stations_bulk(self,
                            endafter=40,
                            model = TauPyModel(),
                            debug=False,
-                           location='*', 
+                           location='*',
                            channel='SN*,SH*,EN*,EH*,HN*,HH*,HG*'):
     allthes = []
     for mseedid in self.get_contents()['channels']:
