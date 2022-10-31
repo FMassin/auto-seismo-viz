@@ -259,7 +259,7 @@ def get_events_updatedafter(self,
                         eventid=[p.split('=')[-1] for p in eventid.split('&') if 'eventid' in p][0]
                     
                     eventid = eventid.split("/")[-1]
-
+                usgs = False
                 try:
                     allsolutions_noarrivals = refclient.get_events(eventid=eventid,
                                                                   includeallmagnitudes=True,
@@ -271,11 +271,25 @@ def get_events_updatedafter(self,
                                                                     includearrivals=True)
                 
                 except FDSNNoDataException:
-                    if debug:
-                        print('No event found with eventid=', eventid)
-                    break
+                    try:
+                        eventid = 'us'+eventid
+                        print('Trying USGS style with no origin or magnitude specification, and eventid=', eventid)
+                        allsolutions_noarrivals = refclient.get_events(eventid=eventid,
+                                                                    #includeallmagnitudes=True,
+                                                                    #includeallorigins=True,
+                                                                    #includearrivals=False
+                                                                    )
+                        prefsolution_witharrivals = allsolutions_noarrivals
+                        usgs=True
+                    except FDSNNoDataException:
+                        if debug:
+                            print('No event found with eventid=', eventid, 'or', eventid[2:])
+                        break
 
                 except:
+                    if debug:
+                        print('Cannot get eventid=', eventid,'... Trying without arrivals')
+                    
                     try:
                         allsolutions_noarrivals = refclient.get_events(eventid=eventid,
                                                                     includeallmagnitudes=True,
@@ -292,8 +306,9 @@ def get_events_updatedafter(self,
                     print('Event %s should be updated'%eventid)
 
                 catalog_updated_last_nseconds += prefsolution_witharrivals[0]
-                catalog_updated_last_nseconds[-1].origins = allsolutions_noarrivals[0].origins
-                catalog_updated_last_nseconds[-1].magnitudes = allsolutions_noarrivals[0].magnitudes
+                if not usgs:
+                    catalog_updated_last_nseconds[-1].origins = allsolutions_noarrivals[0].origins
+                    catalog_updated_last_nseconds[-1].magnitudes = allsolutions_noarrivals[0].magnitudes
 
                 if not isinstance(self,list):
                     break

@@ -152,15 +152,19 @@ def ploteqdata(self, #eqdata[output].select(channel='*b')
     vmax=[]
     vmin=[]
     for tr in self:
-        imax=numpy.nanargmax(tr.data)
-        tmax=numpy.nanmax([tmax, tr.times(type="utcdatetime")[imax]])
-        vmax+=list(tr.data)
+        if numpy.nanmax(tr.data) > 0 :
+            imax=numpy.nanargmax(tr.data)
+            tmax=numpy.nanmax([tmax, tr.times(type="utcdatetime")[imax]])
+            vmax+=[numpy.nanmax(tr.data)]
     for tr in self:
-        vmin+=list(tr.data[:99])
+        if numpy.nanmax(tr.data[:99]) > 0 :
+            vmin+=[numpy.nanmax(tr.data[:99])]
+
     vmin=numpy.nanpercentile(vmin,84)
     vmax=numpy.nanpercentile(vmax,100)*1.1
     norm=matplotlib.colors.LogNorm(vmin=vmin*gain,
                                    vmax=vmax*gain)
+    print(vmin,'*',gain,vmax,'*',gain)
     cmap=matplotlib.pyplot.get_cmap(cmap)
     eprs=[]
     rs=[]
@@ -282,14 +286,14 @@ def ploteqdata(self, #eqdata[output].select(channel='*b')
                         path_effects=path_effects)
     #[l.set_path_effects(path_effects) for l in cax.get_xticklabels()]
     #cax.tick_params(axis='x')
-    cax.minorticks_off()
+#    cax.minorticks_off()
     cax.set_xlim(vmin*gain, vmax*gain)
+    cax.xaxis.set_minor_locator(matplotlib.ticker.LogLocator(base=10.0, subs=numpy.arange(2, 10) * .1, numticks=100))
     
     cbb=cax.twiny()
     cbb.set_xlabel('Ground motion acceleration (m/s$^2$)',fontsize='small')
     cbb.set_xscale('log')
     cbb.set_xlim(vmin*gain, vmax*gain)
-    cbb.xaxis.set_minor_locator(matplotlib.ticker.AutoMinorLocator())
     cbb.xaxis.set_major_formatter(matplotlib.ticker.FormatStrFormatter("%g"))
     cbb.tick_params(axis='x',labelsize='small')
         

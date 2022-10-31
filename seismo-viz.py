@@ -11,6 +11,27 @@ from addons.core import eewmap
 from addons.catalog import performance_timelines
 from addons.event import animate
 
+def cleandata(catalog,eventstreams,eventinventories):
+    for e,event in enumerate(catalog):
+        for output, stream in eventstreams[e].items():
+
+            ## Removing bad channels from plots
+            for tr in eventstreams[e][output].select(location='99'):
+                eventstreams[e][output].remove(tr)
+            
+            # Remove empty (meta)data 
+            eventinventories[e],eventstreams[e][output] = clean_inventorystream(eventinventories[e],eventstreams[e][output])
+            
+            # Improve waveforms attributes
+            eventstreams[e][output].attach_response(eventinventories[e])
+            eventstreams[e][output] = attach_distance(eventstreams[e][output],eventinventories[e],event.preferred_origin())
+
+            ## Combine horizontal data
+            tridim , horiz = combinechannels(eventstreams[e][output], combine='both')
+            eventstreams[e][output] += horiz.select(channel='*b')
+
+    return catalog,eventstreams,eventinventories
+
 def event_data(catalog_uri='USGS',
          inventory_url=None,
          stream_url=None,
@@ -38,25 +59,7 @@ def event_data(catalog_uri='USGS',
         eventstreams = [{o:read(f%o) for o in ['raw','acc','disp'] } for f in files[1::2] ]
         eventinventories = [read_inventory(f) for f in files[2::2]]
 
-        for e,event in enumerate(catalog):
-            for output, stream in eventstreams[e].items():
-
-                ## Removing bad channels from plots
-                for tr in eventstreams[e][output].select(location='99'):
-                    eventstreams[e][output].remove(tr)
-                
-                # Remove empty (meta)data 
-                eventinventories[e],eventstreams[e][output] = clean_inventorystream(eventinventories[e],eventstreams[e][output])
-                
-                # Improve waveforms attributes
-                eventstreams[e][output].attach_response(eventinventories[e])
-                eventstreams[e][output] = attach_distance(eventstreams[e][output],eventinventories[e],event.preferred_origin())
-
-                ## Combine horizontal data
-                tridim , horiz = combinechannels(eventstreams[e][output], combine='both')
-                eventstreams[e][output] += horiz.select(channel='*b')
-
-        return catalog,eventstreams,eventinventories
+        return cleandata(catalog,eventstreams,eventinventories)
 
 
     if not isinstance(catalog_uri,list):
@@ -135,9 +138,9 @@ def event_data(catalog_uri='USGS',
                          format='mseed')
             print('data/%s.%s.mseed'%(shorteventid,output))
         
-    return catalog,eventstreams,eventinventories
+    return cleandata(catalog,eventstreams,eventinventories)
 
-def event_plots(catalog,eventstreams,eventinventories):
+def event_plots(catalog,eventstreams,eventinventories, plots=True, anim=False):
     
     saveopt = {'dpi':512,
                'facecolor':'none',
@@ -146,7 +149,8 @@ def event_plots(catalog,eventstreams,eventinventories):
 
         shorteventid = str(event.resource_id).split('/')[-1]
 
-        if True:
+        if plots:
+
             ## Plot data
             fig = ploteqdata(streams['acc'].select(channel='*b'),event,inventory,lim=999)
             fig.tight_layout()
@@ -168,7 +172,7 @@ def event_plots(catalog,eventstreams,eventinventories):
             print('data/%s_timeline.png'%shorteventid)
 
 
-        else:
+        if anim:
         
             ## Animate data and results
             anim = animate(event,

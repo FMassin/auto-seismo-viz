@@ -107,6 +107,7 @@ def event2stations_bulk(self,
                                             )
         s = numpy.nanmin([ a.time for a in arrivals ])
 
+        # make selection rectangular
         if s > firsts+endafter:
             if debug:
                 print("%s.%s is too far: %f > %f+%f"%(nsc[0].code, nsc[0][0].code,s,firsts,endafter))
