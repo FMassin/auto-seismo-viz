@@ -86,7 +86,7 @@ def scfinderauthor(origin, lineauthors=None):
             lineauthors += ['scfdforela']
     else:
         bm = Basemap()
-        if origin.depth / 1000 > 40:
+        if origin.depth / 1000 > 70:
             lineauthors += ['scfd85sym']
         elif bm.is_land(origin.longitude, origin.latitude):
             lineauthors += ['scfdcrust']
