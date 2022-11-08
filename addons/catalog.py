@@ -628,8 +628,8 @@ def performance_timelines(event,
                                           lineauthors=lineauthors)
     w,h=matplotlib.figure.figaspect(1.)
     f=matplotlib.pyplot.figure(figsize=(w*1.4,h*1.3))
-    initaxes = f.subplots(4,1,sharex=True)
-    axes = [initaxes[2], initaxes[1], initaxes[0], initaxes[3]]
+    initaxes = f.subplots(5,1,sharex=True)
+    axes = [initaxes[2], initaxes[1], initaxes[0], initaxes[3], initaxes[4]]
     
     axesdata=[{'x':{},
                'y':{},
@@ -658,7 +658,15 @@ def performance_timelines(event,
                'yem':{},
                'label':{},
                'title':r'M$_{type}$ (intensity)',
-               'ylabel':'Max. pred.\nintensity'}]
+               'ylabel':'Max. pred.\nintensity'},
+              {'x':{},
+               'y':{},
+               'yep':{},
+               'yem':{},
+               'label':{},
+               'title':r'M$_{type}$',
+               'ylabel':'Likelihood'}
+               ]
 
 
 
@@ -678,6 +686,27 @@ def performance_timelines(event,
             for itmp,tmp in enumerate([preferred_magnitude, m]):
                 key = (tmp.magnitude_type,tmp.creation_info.author)
                 o=tmp.origin_id.get_referred_object()
+                
+                length = numpy.nan
+                strike = numpy.nan
+                likelihood = numpy.nan
+                update = numpy.nan
+                eew = numpy.nan
+                for c in tmp.comments:
+                    
+                    if 'rupture-length' in str(c.resource_id).split('/')[-1]:
+                        length = float(c.text)
+                    elif 'rupture-strike' in str(c.resource_id).split('/')[-1]:
+                        strike = float(c.text)
+                    elif 'likelihood' in str(c.resource_id).split('/')[-1]:
+                        likelihood = float(c.text)
+                    elif 'update' in str(c.resource_id).split('/')[-1]:
+                        update = float(c.text)
+                    elif 'EEW' in str(c.resource_id).split('/')[-1]:
+                        eew = float(c.text)
+                    else:
+                        print(c)
+                
                 tmpeewdelay = [m.creation_info.creation_time-preferred_origin.time]
                 
                 if key not in axesdata[0]['x'].keys() and tmp.magnitude_type not in magnitude_types:
@@ -697,9 +726,18 @@ def performance_timelines(event,
                         axesdata[3]['y'][key]=[]
                         axesdata[3]['yep'][key]=[]
                         axesdata[3]['yem'][key]=[]
+                        axesdata[4]['x'][key]=[]
+                        axesdata[4]['y'][key]=[]
+                        axesdata[4]['yep'][key]=[]
+                        axesdata[4]['yem'][key]=[]
                         mPG[key]=0
 
                     #############################################
+                    axesdata[4]['x'][key].append(eewdelay)
+                    axesdata[4]['y'][key].append(likelihood)
+                    axesdata[4]['yep'][key].append(0)
+                    axesdata[4]['yem'][key].append(0)
+
                     axesdata[0]['x'][key].append(eewdelay)
                     axesdata[0]['y'][key].append(tmp.mag)
                     mag_errors_uncertainty=tmp.mag_errors['uncertainty'] or \
@@ -712,6 +750,7 @@ def performance_timelines(event,
                         label = r'M$_{%s}$ %.1f'%(tmp.magnitude_type[1:],
                                                     tmp.mag)
                         axesdata[0]['label'][key]=label
+                        axesdata[4]['label'][key]=label
 
                     #############################################
                     d = addons.core.haversine(preferred_origin.longitude,
