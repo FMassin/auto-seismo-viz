@@ -630,11 +630,13 @@ def performance_timelines(event,
     f=matplotlib.pyplot.figure(figsize=(w*1.4,h*1.3))
     initaxes = f.subplots(5,1,sharex=True)
     axes = [initaxes[2], initaxes[1], initaxes[0], initaxes[3], initaxes[4]]
-    
+        
     axesdata=[{'x':{},
                'y':{},
                'yep':{},
                'yem':{},
+               'xeew':{},
+               'yeew':{},
                'label':{},
                'title':r'M$_{type}$',
                'ylabel':'Magnitude'},
@@ -642,6 +644,8 @@ def performance_timelines(event,
                'y':{},
                'yep':{},
                'yem':{},
+               'xeew':{},
+               'yeew':{},
                'label':{},
                'title':r'M$_{type}$ (last loc.)',
                'ylabel':r'Location $\delta$ (km)'},
@@ -649,6 +653,8 @@ def performance_timelines(event,
                'y':{},
                'yep':{},
                'yem':{},
+               'xeew':{},
+               'yeew':{},
                'label':{},
                'title':r'M$_{type}$',# (last #)',
                'ylabel':r'Stations #'},
@@ -656,6 +662,8 @@ def performance_timelines(event,
                'y':{},
                'yep':{},
                'yem':{},
+               'xeew':{},
+               'yeew':{},
                'label':{},
                'title':r'M$_{type}$ (intensity)',
                'ylabel':'Max. pred.\nintensity'},
@@ -663,6 +671,8 @@ def performance_timelines(event,
                'y':{},
                'yep':{},
                'yem':{},
+               'xeew':{},
+               'yeew':{},
                'label':{},
                'title':r'M$_{type}$',
                'ylabel':'Likelihood'}
@@ -718,28 +728,42 @@ def performance_timelines(event,
                         axesdata[0]['y'][key]=[]
                         axesdata[0]['yep'][key]=[]
                         axesdata[0]['yem'][key]=[]
+                        axesdata[0]['xeew'][key]=[]
+                        axesdata[0]['yeew'][key]=[]
                         axesdata[1]['x'][key]=[]
                         axesdata[1]['y'][key]=[]
                         axesdata[1]['yep'][key]=[]
                         axesdata[1]['yem'][key]=[]
+                        axesdata[1]['xeew'][key]=[]
+                        axesdata[1]['yeew'][key]=[]
                         axesdata[3]['x'][key]=[]
                         axesdata[3]['y'][key]=[]
                         axesdata[3]['yep'][key]=[]
                         axesdata[3]['yem'][key]=[]
+                        axesdata[3]['xeew'][key]=[]
+                        axesdata[3]['yeew'][key]=[]
                         axesdata[4]['x'][key]=[]
                         axesdata[4]['y'][key]=[]
                         axesdata[4]['yep'][key]=[]
                         axesdata[4]['yem'][key]=[]
+                        axesdata[4]['xeew'][key]=[]
+                        axesdata[4]['yeew'][key]=[]
                         mPG[key]=0
 
                     #############################################
+                        
                     axesdata[4]['x'][key].append(eewdelay)
                     axesdata[4]['y'][key].append(likelihood)
+                    axesdata[4]['xeew'][key].append(eewdelay)
+                    axesdata[4]['yeew'][key].append(likelihood*min([eew,1]))
                     axesdata[4]['yep'][key].append(0)
                     axesdata[4]['yem'][key].append(0)
 
                     axesdata[0]['x'][key].append(eewdelay)
                     axesdata[0]['y'][key].append(tmp.mag)
+                    axesdata[0]['xeew'][key].append(eewdelay)
+                    axesdata[0]['yeew'][key].append(tmp.mag*min([eew,1]))
+
                     mag_errors_uncertainty=tmp.mag_errors['uncertainty'] or \
                                            numpy.percentile(numpy.abs([sm.residual for sm in tmp.station_magnitude_contributions]+[0]),34) or \
                                            0
@@ -759,6 +783,7 @@ def performance_timelines(event,
                                                    o.latitude)
                     d = (d**2+(preferred_origin.depth-o.depth)**2)**.5
                     axesdata[1]['y'][key].append(d/1000)
+                    axesdata[1]['yeew'][key].append(d/1000*min([eew,1]))
 
                     de=((o.latitude_errors['uncertainty']or 5)**2+
                         (o.longitude_errors['uncertainty']or 5)**2+
@@ -769,6 +794,7 @@ def performance_timelines(event,
                     axesdata[1]['yep'][key].append(de)
                     axesdata[1]['yem'][key].append(de)
                     axesdata[1]['x'][key].append(eewdelay)
+                    axesdata[1]['xeew'][key].append(eewdelay)
                     if eewdelay==min(axesdata[1]['x'][key]) or  (eewdelay==0 and tmp.magnitude_type not in magnitude_types):
                         label = r'%s$_{%s}$ $^{N%.2f°}_{E%.2f°}$%.0f$^{bsl}_{km}$'%(tmp.magnitude_type[0],
                                                              tmp.magnitude_type[1:],
@@ -802,6 +828,7 @@ def performance_timelines(event,
 
                     if memlogPGcm>-99999:
                         axesdata[3]['x'][key].append(eewdelay)
+                        axesdata[3]['xeew'][key].append(eewdelay)
                         logPGcm = addons.core.ipe_allen2012_hyp(numpy.asarray([max([.1,abs(eewdistance)])]),
                                                                 numpy.asarray([tmp.mag]),
                                                                 s=-1)
@@ -810,6 +837,7 @@ def performance_timelines(event,
 
                         PG=logPGcm[0]
                         axesdata[3]['y'][key].append(PG)
+                        axesdata[3]['yeew'][key].append(PG*min([eew,1]))
                         if PG>mPG[key] or eewdelay==0:
                             mPG[key]=PG
                             if eewdelay==min(axesdata[3]['x'][key]) or (eewdelay==0 and tmp.magnitude_type not in magnitude_types):
@@ -846,6 +874,8 @@ def performance_timelines(event,
                         axesdata[2]['y'][key]=[]
                         axesdata[2]['yep'][key]=[]
                         axesdata[2]['yem'][key]=[]
+                        axesdata[2]['xeew'][key]=[]
+                        axesdata[2]['yeew'][key]=[]
                         
                     n = o.quality.used_phase_count #tmp.station_count
                     narr=n
@@ -863,12 +893,15 @@ def performance_timelines(event,
                         # use best origin available?
                     if itmp:
                         axesdata[2]['y'][key].append(n)
+                        axesdata[2]['yeew'][key].append(n*min([eew,1]))
                     else:
                         axesdata[2]['y'][key].append(narr)
+                        axesdata[2]['yeew'][key].append(narr*min([eew,1]))
 
                     axesdata[2]['yep'][key].append(0)#max([0,narr-n]))
                     axesdata[2]['yem'][key].append(0)#max([0,n-narr]))
                     axesdata[2]['x'][key].append(eewdelay)
+                    axesdata[2]['xeew'][key].append(eewdelay)
                     if eewdelay==min(axesdata[2]['x'][key]) or (eewdelay==0 and tmp.magnitude_type not in magnitude_types):
                         author=''
                         if tmp.magnitude_type in magnitude_types:
@@ -916,6 +949,23 @@ def performance_timelines(event,
                          color=color,
                          zorder=11,
                          label=data['label'][key])
+            
+            axes[i].plot([data['xeew'][key][i] for i in indexes],
+                         [data['yeew'][key][i] for i in indexes],
+                         marker='o',
+                         linewidth=0,
+                         alpha=0.7,
+                         color=color,
+                         zorder=15)
+
+            axes[i].plot([numpy.nan],
+                         [numpy.nan],
+                         marker='o',
+                         linewidth=0,
+                         alpha=0.7,
+                         color='0.7',
+                         zorder=15,
+                         label='Sent as EEW')
 
             axes[i].set_ylabel(data['ylabel'],fontsize='small')
                       
@@ -933,11 +983,11 @@ def performance_timelines(event,
             axes[i].add_artist(legend)
 
         axes[i].legend([],[],
-        title='abcdefghijklmnopqrst'[list(initaxes).index(axes[i])+lettering_offset],
-                  title_fontsize='small',
-                  loc='best',
-                  #fontsize=0,
-                  labelspacing=-.2)
+                       title='abcdefghijklmnopqrst'[list(initaxes).index(axes[i])+lettering_offset],
+                       title_fontsize='small',
+                       loc='best',
+                       #fontsize=0,
+                       labelspacing=-.2)
 
 
     x=[]
