@@ -958,20 +958,20 @@ def performance_timelines(event,
                          color=color,
                          zorder=15)
 
-            axes[i].plot([numpy.nan],
-                         [numpy.nan],
-                         marker='o',
-                         linewidth=0,
-                         alpha=0.7,
-                         color='0.7',
-                         zorder=15,
-                         label='Sent as EEW')
-
             axes[i].set_ylabel(data['ylabel'],fontsize='small')
                       
             maxt=max([maxt,max(data['x'][key])])
             maxy=max([maxy,max(data['y'][key])])
         
+        axes[i].plot([numpy.nan],
+                        [numpy.nan],
+                        marker='o',
+                        linewidth=0,
+                        alpha=0.7,
+                        color='0.7',
+                        zorder=15,
+                        label='EEW$_{(sent)}$')
+                        
         if i==2:
             legend=axes[i].legend(#title=data['title'],
                            prop={'size': 'small'},
