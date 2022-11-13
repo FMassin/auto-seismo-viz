@@ -293,12 +293,15 @@ def remove_sensitivity(eventstreams,
 
 def clean_inventorystream(inventory,stream):
     #Remove traces without response, cha, sta, net without data from inventory
+    rmtr = []
     for tr in stream:
         try:
             inventory.get_response(tr.id, tr.stats.starttime)
         except:
-            print('Cannot find response for',tr)
-            stream.remove(tr)
+            rmtr += [tr]
+    for tr in rmtr:
+        print('Removing (no response)',tr)
+        stream.remove(tr)
 
     rmcha=[]
     for n, net in enumerate(inventory):

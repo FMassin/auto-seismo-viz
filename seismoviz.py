@@ -140,7 +140,12 @@ def event_data(catalog_uri='USGS',
         
     return cleandata(catalog,eventstreams,eventinventories)
 
-def event_plots(catalog,eventstreams,eventinventories, plots=True, anim=False):
+def event_plots(catalog,
+                eventstreams,
+                eventinventories, 
+                plots=True, 
+                anim=False, 
+                test=False):
     
     saveopt = {'dpi':512,
                'facecolor':'none',
@@ -149,6 +154,9 @@ def event_plots(catalog,eventstreams,eventinventories, plots=True, anim=False):
 
         shorteventid = str(event.resource_id).split('/')[-1]
 
+        if test:
+            pass#figs = plotstationdata(streams,event,inventory)
+            
         if plots:
 
             ## Plot data
