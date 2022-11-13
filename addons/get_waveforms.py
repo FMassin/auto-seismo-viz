@@ -196,7 +196,7 @@ def remove_response(eventstreams,
     return eventstreams
 
 def remove_sensitivity(eventstreams,
-                       outputs=['acc','disp'],#['acc','vel','disp']
+                       outputs=['acc','vel','disp'],#['acc','vel','disp']
                        filters={'pre':None,#{'type':'highpass','freq':0.075},
                                 'acc':None,
                                 'vel':None,

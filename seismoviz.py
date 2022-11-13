@@ -56,7 +56,7 @@ def event_data(catalog_uri='USGS',
             print('Expecting files=<Ev. catalog>,<ev#1 stream (%s for "raw" and "acc")>,<ev#1 inventory>,<ev#2 stream>,<ev#2 inventory>...')
         
         catalog = read_events(files[0])
-        eventstreams = [{o:read(f%o) for o in ['raw','acc','disp'] } for f in files[1::2] ]
+        eventstreams = [{o:read(f%o) for o in ['raw','acc','vel','disp'] if os.path.exists(f%o) } for f in files[1::2] ]
         eventinventories = [read_inventory(f) for f in files[2::2]]
 
         return cleandata(catalog,eventstreams,eventinventories)
@@ -209,10 +209,10 @@ if __name__ == '__main__':
     event_plots(catalog,eventstreams,eventinventories)
 
     # To do:
+    # - station and event tables
     # - add agency
     # - webhook notif
     # - html or panel report
-    # - station and event tables
     # - pip install
     # - BETTER OPTIONS:
     #from getopt import getopt, GetoptError
