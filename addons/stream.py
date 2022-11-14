@@ -170,9 +170,11 @@ def ploteqdata(self, #eqdata[output].select(channel='*b')
     rs=[]
         
     skipped=[]
+    skippedamp=[]
     withStroke = matplotlib.patheffects.withStroke
     for tr in self:
-        if max(tr.data)<vmin*minsnr:
+        if numpy.nanmax(tr.data)<vmin:
+            skippedamp+=[tr.id]
             continue
         epr,r=tracedistance(tr,
                       inventory,
@@ -242,6 +244,9 @@ def ploteqdata(self, #eqdata[output].select(channel='*b')
                         )
     if len(skipped):
         print('Skipped further than %d km: '%(lim)+', '.join(skipped))
+    if len(skippedamp):
+        print('Skipped smaller than vmin color %g: '%(vmin)+', '.join(skippedamp))
+        
     opts={'markersize':15**.5,'color':'r','markeredgewidth':0}
     #ax.plot(numpy.nan,1,label='PGA$_{obs}$',**opts)
     
