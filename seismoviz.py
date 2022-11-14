@@ -41,7 +41,7 @@ def event_data(catalog_uri='USGS',
          user=None, 
          password=None, 
          debug=False, 
-         timeout=120, 
+         timeout=120*4, 
          channel='SN*,SH*,EN*,EH*,HN*,HH*,HG*',
          eida_token=None,
          **get_events_wargs):
