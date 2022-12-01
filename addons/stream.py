@@ -6,6 +6,7 @@ from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 from obspy.core.stream import Stream, Trace
 from obspy.core import UTCDateTime
 from obspy.geodetics.base import gps2dist_azimuth
+from addons.catalog import legend_title
 gold= (1 + 5 ** 0.5) / 2.
 
 def lineMagnitude(x1, y1, x2, y2):
@@ -457,7 +458,13 @@ def ploteqdata(self, #eqdata[output].select(channel='*b')
                  loc='left',
                  fontsize='small'
                  )
-    
+
+    ax.legend([],[], 
+              title=legend_title(event,mtypes), 
+              title_fontproperties={'size':'small',
+                                    'weight':'bold'}, 
+              loc='best', 
+              labelspacing=-.2)
     
     return ax.figure
 

@@ -7,12 +7,13 @@ from obspy.imaging.source import beach
 import glob,geocoder,numpy
 import matplotlib.patheffects,matplotlib.gridspec,matplotlib.pyplot,matplotlib.cm
 import scipy.interpolate
-from addons.catalog import map_events,get
+from addons.catalog import map_events,get, legend_title
 from addons.catalog import distfilter as catalog_distfilter
 from addons.inventory import map_stations
 from addons.inventory import distfilter as inventory_distfilter
 from addons.stream import get_velmodel_correction
 gold= (1 + 5 ** 0.5) / 2.
+
 
 def ipe_allen2012_hyp(r,
                       m,
@@ -1160,6 +1161,9 @@ def eewmap(data,
 
     if legend:
         fig.bmap.ax.legend(ncol=1,
+                           title=legend_title(data['event'],['Mfd', 'MVS']), 
+                           title_fontproperties={'size':'xx-small',
+                                                 'weight':'bold'}, 
                            bbox_to_anchor=(1,0), loc="lower left",
                            prop={'size': 'xx-small'})
     else:

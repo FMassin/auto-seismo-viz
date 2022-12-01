@@ -6,6 +6,44 @@ import addons.core
 import numpy
 import matplotlib.pyplot,matplotlib.figure
 
+def legend_title(event,mtypes,
+                 aliases = {'GUA':'INSIVUMEH'},
+                 split=True):
+
+    leg_title = {event.preferred_origin().creation_info.agency_id:[event.preferred_magnitude().magnitude_type]}
+    for m in event.magnitudes:
+        if m.magnitude_type in mtypes:
+            a = m.creation_info.agency_id.upper()
+            if a in aliases:
+                a = aliases[a]
+            if a not in leg_title: 
+                leg_title[a] = [m.magnitude_type]
+            else:
+                if m.magnitude_type in leg_title[a]:
+                    continue
+                leg_title[a] += [m.magnitude_type]
+    rename = []
+    for a in leg_title:
+        if a in aliases:
+            rename += [[aliases[a],a]]
+    for a in rename:
+        if a[0] not in leg_title:
+            leg_title[a[0]] = leg_title.pop(a[1])
+        else: 
+            leg_title[a[0]] += leg_title.pop(a[1])  
+    for a in leg_title:
+        leg_title[a] = ', '.join(leg_title[a])
+    if len(leg_title)>1 :
+        leg_title = '\n'.join(['%s: %s'%(a,leg_title[a]) for a in leg_title])
+    elif split:
+        a = list(leg_title.keys())[0]
+        leg_title = '%s:\n%s'%(a,leg_title[a]) 
+    else:
+        a = list(leg_title.keys())[0]
+        leg_title = '%s: %s'%(a,leg_title[a]) 
+
+    return leg_title
+
 def distfilter(self=Catalog(),
                dmax=None,
                dmin=0.,
@@ -973,12 +1011,14 @@ def performance_timelines(event,
                         label='EEW$_{(sent)}$')
                         
         if i==2:
-            legend=axes[i].legend(#title=data['title'],
-                           prop={'size': 'small'},
-                           ncol=3,
-                           loc='lower right',
-                           bbox_to_anchor=(0, 1, 1, 0)
-                           )
+            legend=axes[i].legend(title=legend_title(event,magnitude_types,split=False), 
+                                  title_fontproperties={'size':'small',
+                                                        'weight':'bold'}, 
+                                  prop={'size': 'small'},
+                                  ncol=3,
+                                  loc='lower right',
+                                  bbox_to_anchor=(0, 1, 1, 0)
+                                  )
             legend.remove()
             axes[i].add_artist(legend)
 
