@@ -463,7 +463,7 @@ def ploteqdata(self, #eqdata[output].select(channel='*b')
               title=legend_title(event,mtypes), 
               title_fontproperties={'size':'small',
                                     'weight':'bold'}, 
-              loc='best', 
+              loc=2, 
               labelspacing=-.2)
     
     return ax.figure

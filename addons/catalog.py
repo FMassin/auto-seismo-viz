@@ -6,22 +6,25 @@ import addons.core
 import numpy
 import matplotlib.pyplot,matplotlib.figure
 
-def legend_title(event,mtypes,
-                 aliases = {'GUA':'INSIVUMEH'},
-                 split=True):
+def mtype(magnitude_type):
+    return 'M$_{\\bf{%s}}$'%magnitude_type[1:]
 
-    leg_title = {event.preferred_origin().creation_info.agency_id:[event.preferred_magnitude().magnitude_type]}
+def legend_title(event,mtypes,
+                 aliases = {'GUA':'INSIVUMEH','us':'USGS'},
+                 split=True):
+    #print(event.preferred_origin().creation_info)
+    leg_title = {event.preferred_origin().creation_info.agency_id:[mtype(event.preferred_magnitude().magnitude_type)]}
     for m in event.magnitudes:
         if m.magnitude_type in mtypes:
+            #print(m.creation_info)
             a = m.creation_info.agency_id.upper()
+            mtypestr = mtype(m.magnitude_type)
             if a in aliases:
                 a = aliases[a]
             if a not in leg_title: 
-                leg_title[a] = [m.magnitude_type]
-            else:
-                if m.magnitude_type in leg_title[a]:
-                    continue
-                leg_title[a] += [m.magnitude_type]
+                leg_title[a] = []
+            if mtypestr not in leg_title[a]:
+                leg_title[a] += [mtypestr]
     rename = []
     for a in leg_title:
         if a in aliases:
@@ -33,16 +36,15 @@ def legend_title(event,mtypes,
             leg_title[a[0]] += leg_title.pop(a[1])  
     for a in leg_title:
         leg_title[a] = ', '.join(leg_title[a])
-    if len(leg_title)>1 :
-        leg_title = '\n'.join(['%s: %s'%(a,leg_title[a]) for a in leg_title])
+    if len(leg_title)>1 and split:
+        leg_title = '\n'.join(['%s: %s'%(leg_title[a], a) for a in leg_title])
     elif split:
         a = list(leg_title.keys())[0]
         leg_title = '%s:\n%s'%(a,leg_title[a]) 
     else:
-        a = list(leg_title.keys())[0]
-        leg_title = '%s: %s'%(a,leg_title[a]) 
+        leg_title = '. '.join(['%s: %s'%(leg_title[a], a) for a in leg_title])
 
-    return leg_title
+    return r'%s'%leg_title
 
 def distfilter(self=Catalog(),
                dmax=None,
