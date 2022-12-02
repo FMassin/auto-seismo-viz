@@ -3,3 +3,4 @@ data/*
 *.pyc
 data-bu/*
 test.ipynb
+test/*

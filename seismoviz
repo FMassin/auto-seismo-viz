@@ -1,0 +1,74 @@
+#!/usr/bin/env python
+from sys import argv
+from re import sub
+import os
+
+
+if __name__ == '__main__':
+
+    if os.path.exists('apps/%s.py'%argv[1]):
+
+        args={ arg.split('=')[0]:arg.split('=')[1] for arg in argv[2:] if "=" in arg}
+
+        tmp='\n'.join(['%s: %s'%(arg,args[arg]) for arg in args])
+        tmp=sub('catalog_uri: .*\n',  'catalog_uri: *****\n',tmp)
+        tmp=sub('stream_url: .*\n',   'stream_url: *****\n',tmp)
+        tmp=sub('inventory_url: .*\n','inventory_url: *****\n',tmp)
+        tmp=sub('user:.*\n',       'user: *****\n',      tmp)
+        tmp=sub('password:.*\n',   'password: *****\n',  tmp)
+        print('Arguments provided:')
+        print(tmp)
+
+        import importlib
+        function_call = 'apps.' + argv[1]
+        function_call = importlib.import_module(function_call) 
+        function_call.main(**args)
+    
+    else:
+
+        args={ arg.split('=')[0]:arg.split('=')[1] for arg in argv[1:] if "=" in arg}
+        tmp='\n'.join(['%s: %s'%(arg,args[arg]) for arg in args])
+        tmp=sub('catalog_uri: .*\n',  'catalog_uri: *****\n',tmp)
+        tmp=sub('stream_url: .*\n',   'stream_url: *****\n',tmp)
+        tmp=sub('inventory_url: .*\n','inventory_url: *****\n',tmp)
+        tmp=sub('user:.*\n',       'user: *****\n',      tmp)
+        tmp=sub('password:.*\n',   'password: *****\n',  tmp)
+        print('Arguments provided:')
+        print(tmp)
+
+        # To do:
+        # - station and event tables
+        # - add agency
+        # - webhook notif
+        # - html or panel report
+        # - pip install
+        # - BETTER OPTIONS:
+        #from getopt import getopt, GetoptError
+        #py2 = sys.version_info < (3,)
+        #pipedinputs = sys.stdin if py2 else sys.stdin.buffer
+        #... = None
+        #
+        #try:
+        #    opts, args = getopt(sys.argv[1:], "x:...:",
+        #                        ["stdout", "...=", ])
+        #except GetoptError:
+        #    usage()
+        #    return 1
+        #
+        #out_channel = None
+        #
+        #
+        #for flag, arg in opts:
+        #    if flag in ("-c", "--stdout"):
+        #        out_channel = sys.stdout if py2 else sys.stdout.buffer
+        #    elif ... in ("-...", "--..."):
+        #        ... = arg
+        #    else:
+        #        usage()
+        #        if flag in ("-h", "--help"):
+        #            return 0
+        #        return 1
+        #
+        #if ...
+        #    sys.exit(1)
+

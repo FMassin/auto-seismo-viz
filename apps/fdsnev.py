@@ -1,9 +1,7 @@
 #!/usr/bin/env python
 from obspy.clients.fdsn import Client 
 from obspy.core import UTCDateTime
-from sys import argv
-from re import sub
-import os,glob
+import os
 from addons.get_events import get_events_updatedafter
 from addons.get_waveforms import get_events_waveforms,attach_distance,clean_inventorystream
 from addons.stream import ploteqdata,combinechannels
@@ -110,7 +108,7 @@ def event_data(catalog_uri='USGS',
     catalog = get_events_updatedafter(catalog_clients,
                                       updated_after=updated_after,
                                       **get_events_wargs)
-    # To do : Remove cha, sta, net without data from inventory
+
     eventstreams,eventinventories = get_events_waveforms(stream_client,
                                                          catalog,
                                                          channel=channel,
@@ -212,57 +210,10 @@ def event_plots(catalog,
             anim.save('data/%s_anim.mp4'%shorteventid)#,dpi=300)
             print('data/%s_anim.mp4'%shorteventid)
 
-if __name__ == '__main__':
+def main(**args):
 
-    args={ arg.split('=')[0]:arg.split('=')[1] for arg in argv[1:] if "=" in arg}
-    tmp='\n'.join(['%s: %s'%(arg,args[arg]) for arg in args])
-    tmp=sub('catalog_uri: .*\n',  'catalog_uri: *****\n',tmp)
-    tmp=sub('stream_url: .*\n',   'stream_url: *****\n',tmp)
-    tmp=sub('inventory_url: .*\n','inventory_url: *****\n',tmp)
-    tmp=sub('user:.*\n',       'user: *****\n',      tmp)
-    tmp=sub('password:.*\n',   'password: *****\n',  tmp)
-    print('Arguments provided:')
-    print(tmp)
-
-    # Creating plots
-    catalog,eventstreams,eventinventories = event_data(**args)
-    
-    # Creating plots
-    event_plots(catalog,eventstreams,eventinventories,**args)
-
-    # To do:
-    # - station and event tables
-    # - add agency
-    # - webhook notif
-    # - html or panel report
-    # - pip install
-    # - BETTER OPTIONS:
-    #from getopt import getopt, GetoptError
-    #py2 = sys.version_info < (3,)
-    #pipedinputs = sys.stdin if py2 else sys.stdin.buffer
-    #... = None
-    #
-    #try:
-    #    opts, args = getopt(sys.argv[1:], "x:...:",
-    #                        ["stdout", "...=", ])
-    #except GetoptError:
-    #    usage()
-    #    return 1
-    #
-    #out_channel = None
-    #
-    #
-    #for flag, arg in opts:
-    #    if flag in ("-c", "--stdout"):
-    #        out_channel = sys.stdout if py2 else sys.stdout.buffer
-    #    elif ... in ("-...", "--..."):
-    #        ... = arg
-    #    else:
-    #        usage()
-    #        if flag in ("-h", "--help"):
-    #            return 0
-    #        return 1
-    #
-    #if ...
-    #    sys.exit(1)
-
+        # Getting data
+        catalog,eventstreams,eventinventories = event_data(**args)
+        
+        # Creating plots
+        event_plots(catalog,eventstreams,eventinventories,**args)
