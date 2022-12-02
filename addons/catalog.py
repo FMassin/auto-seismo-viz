@@ -10,7 +10,7 @@ def mtype(magnitude_type):
     return 'M$_{\\bf{%s}}$'%magnitude_type[1:]
 
 def legend_title(event,mtypes,
-                 aliases = {'GUA':'INSIVUMEH','us':'USGS'},
+                 aliases = {'GUA':'INSIVUMEH','us':'USGS','INETERFINDER':'INETER'},
                  split=True):
     #print(event.preferred_origin().creation_info)
     leg_title = {event.preferred_origin().creation_info.agency_id:[mtype(event.preferred_magnitude().magnitude_type)]}
