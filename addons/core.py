@@ -422,7 +422,7 @@ def nicemap(catalog=Catalog(),
             scale=True,
             server='http://server.arcgisonline.com/ArcGIS',
             service='Ocean/World_Ocean_Base',
-            shapefile='/Users/fmassin/Documents/Data/misc/gem-global-active-faults/shapefile/gem_active_faults_harmonized',
+            shapefile='/Users/fred/Documents/Data/misc/gem-global-active-faults/shapefile/gem_active_faults_harmonized',
             shapecolors='slip_type',
             default_encoding='iso-8859-15'):
 
@@ -514,9 +514,10 @@ def nicemap(catalog=Catalog(),
             im3.set_array(data)
         if reference:
             im1 = bmap.arcgisimage(service='Reference/World_Boundaries_and_Places_Alternate',
-                                   #xpixels=int(xpixels/3),
+                                   xpixels=int(xpixels/2),
                                    dpi=dpi,
                                    zorder=-9999)
+            im1.set_alpha(.8)
 
     
     steps=numpy.asarray([ 0.001,0.0025,0.005,0.01,0.025,0.05,0.1,0.25,.5,1,2.5,5,10,25,50,100,250,500,1000])

@@ -54,11 +54,13 @@ def default(ax):
     
 def map_event(event,
               disp,
+              stream,
               radius=110000,
               frames=10,
               vs=3.7,
               vp=3.7*2.7,
               xpixels=1500,
+              label='Ground motion acceleration (%sg, observed)'%"%",#Intensity (Allen et al., 2012)',#
               figsize=[15,9],
               resolution='h',
               duration=60,
@@ -72,6 +74,7 @@ def map_event(event,
         print(event.preferred_magnitude())
     origin = event.preferred_origin()
     tr=disp.select(channel='*Z')[1]
+    origin_time=origin.time
     
     mapbounds = eventmapboundary(latitudes=[origin.latitude],# = [origin.latitude, tr.stats.coordinates['latitude']],
                     longitudes=[origin.longitude],# = [origin.longitude, tr.stats.coordinates['longitude']]
@@ -167,15 +170,15 @@ def map_event(event,
     ## GM-distance subplot
     h = pos.height*int(golden)/golden
     position = [pos.x1-w, pos.y1-h, w, h]
-    ax = fig.add_axes(position,
+    axmmi = fig.add_axes(position,
                        facecolor=[1,1,1,.5],
                             zorder=999)
-    ax.xaxis.set_label_position('top') 
-    ax.twin = ax.twinx()
-    ax.twin.set_zorder(ax.get_zorder() + 1)
+    axmmi.xaxis.set_label_position('top') 
+    axmmi.twin = axmmi.twinx()
+    axmmi.twin.set_zorder(axmmi.get_zorder() + 1)
 
-    default(ax)
-    ax.tick_params(right=False, 
+    default(axmmi)
+    axmmi.tick_params(right=False, 
                    top=True,
                    left=True, 
                    bottom=False,
@@ -185,7 +188,7 @@ def map_event(event,
                    labelright=False,
                     which='both')
 
-    ax.twin.tick_params(right=True, 
+    axmmi.twin.tick_params(right=True, 
                    top=False,
                    left=False, 
                    bottom=False,
@@ -194,20 +197,20 @@ def map_event(event,
                    labelleft=False, 
                    labelright=False,
                    which='both')
-    ax.twin.set_yscale('log')
-    ax.set_xlim([0,#event.preferred_origin().depth/1000, 
-                 ((duration*vs)**2-(event.preferred_origin().depth/1000)**2)**.5])
-    ax.spines['left'].set_color('C0')
-    ax.tick_params(axis='y', colors='C0',which="both")
-    ax.yaxis.label.set_color('C0')
-    fig.insets += [ax]
+    axmmi.twin.set_yscale('log')
+    axmmi.set_xlim([0,#event.preferred_origin().depth/1000, 
+                 ((duration*vs*2)**2-(event.preferred_origin().depth/1000)**2)**.5])
+    axmmi.spines['left'].set_color('C0')
+    axmmi.tick_params(axis='y', colors='C0',which="both")
+    axmmi.yaxis.label.set_color('C0')
+    fig.insets += [axmmi]
 
     ## Colorbar
     cw = pos.width*1/128
     position = [pos.x1-cw/2, pos.y1-h, cw, h]
     fig.cax = fig.add_axes(position,
                            facecolor=[0,0,0,0],
-                           sharey=ax.twin,
+                           sharey=axmmi.twin,
                            zorder=9999)
     fig.cax.tick_params(right=False, 
                    top=False,
@@ -243,6 +246,32 @@ def map_event(event,
     copts={'linewidth':2,
           'path_effects':path_effects}
     fig.swaves = []
+
+
+    cmap = matplotlib.cm.nipy_spectral
+    normopts = {'vmin': min([numpy.percentile(abs(tr.data[tr.data!=0]/0.0981),8) for tr in stream]), 
+                'vmax': max([max(abs(tr.data[tr.data!=0]/0.0981)) for tr in stream])*1.1
+                }
+    norm = matplotlib.colors.LogNorm(**normopts)
+    scalarcolormap = matplotlib.cm.ScalarMappable(norm=norm, 
+                                                  cmap=cmap)
+    cb = fig.colorbar(scalarcolormap,
+                      cax=fig.cax,
+                      ticklocation='right', 
+                      extend='both',
+                      label=label)
+    default(cb.ax)
+    cb.ax.minorticks_on()
+    #cb.ax.set_yticks(range(13))
+    #cb.ax.set_yticklabels(['','I','II','III','IV','V','VI','VII','VIII','IX','X','XI','XII'])
+    path_effects = [matplotlib.patheffects.withStroke(linewidth=5,
+                                                      foreground="white")]  
+    minpath_effects = [matplotlib.patheffects.withStroke(linewidth=0,
+                                                         foreground="white")]  
+    fig.cax.set_ylabel(label,
+                       path_effects=path_effects,
+                       fontweight='bold')
+    axmmixlim = axmmi.twin.get_xlim()
     for index in range(fig.frames):
         frametime = index*fig.secperframe
         linestyle='solid'
@@ -260,9 +289,40 @@ def map_event(event,
                         frametime+fig.secperframe,
                         fig.insets[1].axvline(hypd,color='k',linestyle=linestyle,**copts)]]
             linestyle = 'dashed'
-    
-    
-        
+
+
+            for tr in stream.slice(endtime=origin_time+frametime):
+                
+                tropts={'x':tr.stats.coordinates['longitude'],
+                    'y':tr.stats.coordinates['latitude'],
+                    'linestyle':'None',
+                    'latlon':True,
+                    'marker':'^',
+                    'markersize':8,
+                    'markeredgewidth':.5,
+                    'markeredgecolor':'k',
+                    'color':scalarcolormap.to_rgba(max(abs(tr.data/0.0981))),#fig.acc2mmi(),
+                    'path_effects':path_effects}
+                fig.swaves[-1] += [fig.bmap.plot(**tropts,zorder=99999)[0]]
+                
+                tropts['markersize']=6
+                tropts.pop("latlon")
+                tropts.pop("x")
+                tropts.pop("y")
+                tropts.pop("path_effects")
+                fig.swaves[-1] += [axmmi.twin.plot(tr.stats.distance/1000,
+                                            max(abs(tr.data/0.0981)),#fig.acc2mmi(),
+                                            **tropts,
+                                            zorder=9999)[0]]
+                tropts['markersize'] = 0
+                tropts['linestyle'] = '-'
+                tropts['linewidth'] = 1
+                tropts['color'] = 'w'
+                fig.swaves[-1] += [axmmi.twin.plot([tr.stats.distance/1000,axmmixlim[1]],
+                                            [max(abs(tr.data/0.0981)),max(abs(tr.data/0.0981))],#fig.acc2mmi(),
+                                            **tropts,
+                                            path_effects=None,
+                                            zorder=9998)[0]]
     return fig
 
 def samemagupdate(m,mm,dt,origin_time):
@@ -277,7 +337,7 @@ def add_magnitudes(event,
                    bmap,
                    axmmi,
                    stream,
-                   label='Ground motion acceleration (m/s$^2$, observed)',#Intensity (Allen et al., 2012)',#
+                   label='Ground motion acceleration (%sg, observed)'%"%",#Intensity (Allen et al., 2012)',#
                    lineauthors=[],
                    types = {'Mfd':'C1','MVS':'C2'},
                    latextypes = {'Mfd':'orange','MVS':'green'},
@@ -292,27 +352,7 @@ def add_magnitudes(event,
     ###############################################################
     lineauthors = scfinderauthor(pref_origin,lineauthors=lineauthors)
     ###############################################################
-    
-    cmap = matplotlib.cm.nipy_spectral
-    norm = matplotlib.colors.LogNorm(vmin=min([numpy.percentile(abs(tr.data[tr.data!=0]),5) for tr in stream]), 
-                                       vmax=max([max(abs(tr.data[tr.data!=0])) for tr in stream]))
-    scalarcolormap = matplotlib.cm.ScalarMappable(norm=norm, 
-                                                  cmap=cmap)
-    cb = fig.colorbar(scalarcolormap,
-                      cax=fig.cax,
-                      ticklocation='right', 
-                      extend='both',
-                      label=label)
-    default(cb.ax)
-    cb.ax.minorticks_on()
-    #cb.ax.set_yticks(range(13))
-    #cb.ax.set_yticklabels(['','I','II','III','IV','V','VI','VII','VIII','IX','X','XI','XII'])
-    path_effects = [matplotlib.patheffects.withStroke(linewidth=5,
-                                                      foreground="white")]  
-    fig.cax.set_ylabel(label,
-                       path_effects=path_effects,
-                       fontweight='bold')
-    
+        
     path_effects = [matplotlib.patheffects.withStroke(linewidth=5,
                                                       foreground="white")]
     fig.magnitudes = []
@@ -366,29 +406,6 @@ def add_magnitudes(event,
         mmi=list(ipe_allen2012_hyp(*minputs,s=-1))
         distances=[abs(origin.depth)/1000]
         for tr in stream.slice(endtime=m.creation_info.creation_time):
-            
-            opts={'x':tr.stats.coordinates['longitude'],
-                'y':tr.stats.coordinates['latitude'],
-                'linestyle':'None',
-                'latlon':True,
-                'marker':'^',
-                'markersize':8,
-                'markeredgewidth':.5,
-                'markeredgecolor':'k',
-                'color':scalarcolormap.to_rgba(max(abs(tr.data))),#fig.acc2mmi(),
-                'path_effects':path_effects}
-            fig.magnitudes[i]+=[fig.bmap.plot(**opts)[0]]
-            
-            opts['markersize']=6
-            opts.pop("latlon")
-            opts.pop("x")
-            opts.pop("y")
-            opts.pop("path_effects")
-            fig.magnitudes[i]+=[axmmi.twin.plot(tr.stats.distance/1000,
-                                           max(abs(tr.data)),#fig.acc2mmi(),
-                                           **opts,
-                                           zorder=9999)[0]]
-
             minputs=[origin.longitude,origin.latitude,
                      tr.stats.coordinates['longitude'],
                      tr.stats.coordinates['latitude']]
@@ -405,6 +422,12 @@ def add_magnitudes(event,
                'linewidth':2,
                'path_effects':path_effects}
         fig.magnitudes[i]+=[axmmi.plot(*minputs,**mopts)[0]]
+        minputs[1]= [minputs[1][0]]+[v for v in minputs[1]]+[minputs[1][-1]] 
+        minputs[0]= [0]+[v for v in minputs[0]]+[0]
+        mopts['linewidth']=1
+        mopts['alpha']=.5
+        mopts.pop("path_effects")
+        fig.magnitudes[i]+=[axmmi.plot(*minputs,path_effects=None,**mopts)[0]]
 
             
         inputs=[origin.longitude,
@@ -431,8 +454,10 @@ def add_magnitudes(event,
                 if inputs[2]<=0:
                     continue
                 fig.swaves+=[[frametime,
-                            frametime+fig.secperframe,
-                            fig.bmap.tissot(*inputs,linestyle=linestyle,**opts)]]
+                              frametime+fig.secperframe,
+                              fig.bmap.tissot(*inputs,
+                                              linestyle=linestyle,
+                                              **opts)]]
                 linestyle = 'dashed'
 
      
@@ -450,21 +475,21 @@ def add_magnitudes(event,
     acclim = axmmi.twin.get_ylim()
     ha = (numpy.log10(acclim[1])-numpy.log10(int2acc[0][1]))/(numpy.log10(acclim[1])-numpy.log10(acclim[0]))
     bottom = -1*(mmilim[1]-int2acc[0][0]-ha*mmilim[1])/ha 
-    axmmi.set_ylim(bottom=bottom)
+    ## linked mmi & acc : axmmi.set_ylim(bottom=bottom)
     
     mmilim = axmmi.get_ylim()
     acclim = axmmi.twin.get_ylim()
-    axmmi.set_ylim(top=max([fig.acc2mmi(acclim[1]), mmilim[1]]))
-    axmmi.twin.set_ylim(top=max([fig.mmi2acc(mmilim[1]), acclim[1]]))
+    ## linked mmi & acc : axmmi.set_ylim(top=max([fig.acc2mmi(acclim[1]), mmilim[1]]))
+    ## linked mmi & acc : axmmi.twin.set_ylim(top=max([fig.mmi2acc(mmilim[1]), acclim[1]]))
 
     ## Fill MMI plot
     mmilim = axmmi.get_ylim()
     if mmilim[0]<fig.mmifillmin:
         axmmi.fill_between(axmmi.get_xlim(),
-                        [mmilim[0],mmilim[0]],
+                        [fig.mmifillmin,fig.mmifillmin],## linked mmi & acc :mmilim[0],mmilim[0]],
                         fig.mmifillmin,
                         **fig.mmifillopt)    
-        axmmi.set_ylim(mmilim)    
+        ## linked mmi & acc : axmmi.set_ylim(mmilim)    
     
 def add_psa(tr,ax,time, tr1=None, tr2=None, maxperiod=5):  
     path_effects = [matplotlib.patheffects.withStroke(linewidth=10,
@@ -598,7 +623,7 @@ def add_mmi(stream,event,ax):
         lat+=[tr.stats.coordinates['latitude']]
         ids+=[tr.id]
         distances+=[tr.stats.distance/1000]
-        modAcc+=[max(abs(tr.data))]
+        modAcc+=[max(abs(tr.data/0.0981))]
 
     modMMI=list(ipe_allen2012_hyp(numpy.array(distances[1:]),
                                                                 numpy.array([pref_magnitude.mag for n in distances[1:]]),
@@ -737,8 +762,8 @@ def animate(event,
             acc,
             disp,
             inventory,
-            duration=45,
-            frames=45*6,
+            duration=55,
+            frames=55*6,
             **opts):
 
     if frames is None:
@@ -748,6 +773,7 @@ def animate(event,
 
     fig = map_event(event,
                     disp,
+                    acc.select(channel='*b'),
                     #epsg=3857,
                     frames=frames,
                     duration=duration,

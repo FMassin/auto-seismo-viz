@@ -145,14 +145,9 @@ def event_plots(catalog,
                 eventstreams,
                 eventinventories, 
                 plots=True, 
-                anim=False, 
+                animates=False, 
                 test=False,
                 **args):
-
-    if isinstance(anim,str):
-        anim=bool(anim)
-    if isinstance(plots,str):
-        plots=bool(plots)
 
     saveopt = {'dpi':512,
                'facecolor':'none',
@@ -164,7 +159,7 @@ def event_plots(catalog,
         if test:
             pass#figs = plotstationdata(streams,event,inventory)
             
-        if plots:
+        if not plots==False and not plots==0 and not plots=='0' :
 
             ## Plot data
             fig = ploteqdata(streams['acc'].select(channel='*b'),event,inventory,lim=999)
@@ -199,8 +194,7 @@ def event_plots(catalog,
             fig.savefig('data/%s_timeline.png'%shorteventid,bbox_inches='tight',**saveopt)
             print('data/%s_timeline.png'%shorteventid)
 
-
-        if anim:
+        if not animates==False and not animates==0 and not animates=='0' :
         
             ## Animate data and results
             anim = animate(event,
