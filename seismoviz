@@ -3,7 +3,6 @@ from sys import argv
 from re import sub
 import os
 
-
 if __name__ == '__main__':
 
     if os.path.exists('apps/%s.py'%argv[1]):
@@ -38,7 +37,6 @@ if __name__ == '__main__':
 
         # To do:
         # - station and event tables
-        # - add agency
         # - webhook notif
         # - html or panel report
         # - pip install

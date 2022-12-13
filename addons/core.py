@@ -382,10 +382,11 @@ def get_aspectratio(catalog=Catalog(),
                     figsize=4):
 
     lons, lats = search(inventory, fields=['longitude','latitude'], levels=['networks','stations'])
-    for x in get(catalog, 'origins','latitude', types=['p']):
-        lats.append(x)
-    for x in get(catalog, 'origins','longitude', types=['p']):
-        lons.append(x)
+    
+    for e in catalog:
+        for o in e.origins:
+            lats.append(o.latitude)
+            lons.append(o.longitude)
 
     if max(lons)-min(lons) < max(lats)-min(lats):
 
@@ -434,7 +435,7 @@ def nicemap(catalog=Catalog(),
                         inventory=inventory,
                         aspectratio=aspectratio,
                         figsize=figsize)
-
+        
         y = lats.copy()
         x = lons.copy()
 
@@ -484,13 +485,21 @@ def nicemap(catalog=Catalog(),
             server = [server]
             service = [service]
         for i,s in enumerate(server):
-            im2 = bmap.arcgisimage(service=service[i],
-                                   server=server[i],
-                                   xpixels=xpixels,
-                                   dpi=dpi,
-                                   zorder=-999999,
-                                    verbose= True
-                                   )
+            try:
+                im2 = bmap.arcgisimage(service=service[i],
+                                    server=server[i],
+                                    xpixels=xpixels,
+                                    dpi=dpi,
+                                    zorder=-999999,
+                                        verbose= True
+                                    )
+            except:
+                im2 = bmap.arcgisimage(service=service[i],
+                                    server=server[i],
+                                    dpi=dpi,
+                                    zorder=-999999,
+                                        verbose= True
+                                    )
             im2.set_alpha(alpha)
         if True:
             if dark:
@@ -501,11 +510,17 @@ def nicemap(catalog=Catalog(),
                                    )
                 #im3.set_alpha(.9)
             else:
-                im3 = bmap.arcgisimage(service='Elevation/World_Hillshade',
-                                   xpixels=xpixels,
-                                   dpi=dpi,
-                                   zorder=-99999
-                                   )
+                try:
+                    im3 = bmap.arcgisimage(service='Elevation/World_Hillshade',
+                                    xpixels=xpixels,
+                                    dpi=dpi,
+                                    zorder=-99999
+                                    )
+                except:
+                    im3 = bmap.arcgisimage(service='Elevation/World_Hillshade',
+                                    dpi=dpi,
+                                    zorder=-99999
+                                    )
 
             data=im3.get_array()
             data[:,:,3] = 1-(data[:,:,0]*data[:,:,1]*data[:,:,2])
@@ -513,10 +528,15 @@ def nicemap(catalog=Catalog(),
                 data[:,:,3] = (1-(data[:,:,0]/255*data[:,:,1]/255*data[:,:,2]/255))*255
             im3.set_array(data)
         if reference:
-            im1 = bmap.arcgisimage(service='Reference/World_Boundaries_and_Places_Alternate',
-                                   xpixels=int(xpixels/2),
-                                   dpi=dpi,
-                                   zorder=-9999)
+            try:
+                im1 = bmap.arcgisimage(service='Reference/World_Boundaries_and_Places_Alternate',
+                                    xpixels=int(xpixels/2),
+                                    dpi=dpi,
+                                    zorder=-9999)
+            except:
+                im1 = bmap.arcgisimage(service='Reference/World_Boundaries_and_Places_Alternate',
+                                    dpi=dpi,
+                                    zorder=-9999)
             im1.set_alpha(.8)
 
     
@@ -700,23 +720,25 @@ def map_all(self=None,
                             scale=scale,
                             server=server,
                             service=service)
+    titletext = ''
+    if False:
+        titletext = map_events(catalog,
+                                    bmap=bmap,
+                                    fig=fig,
+                                    eqcolorfield = eventcolors,
+                                    titletext=titleaddons,
+                                    colorbar=colorbar,
+                                    fontsize=fontsize,
+                                    prospective_inventory=prospective_inventory,
+                                    latencies=latencies,
+                                    extra=extracatalog,
+                                    extramarker=extramarkercatalog,
+                                    extraname=extranamecatalog,
+                                    fp=fp,
+                                    vmin=vmin,
+                                    vmax=vmax,
+                                    force=force)
 
-    titletext = map_events(catalog,
-                                   bmap=bmap,
-                                   fig=fig,
-                                   eqcolorfield = eventcolors,
-                                   titletext=titleaddons,
-                                   colorbar=colorbar,
-                                   fontsize=fontsize,
-                                   prospective_inventory=prospective_inventory,
-                                   latencies=latencies,
-                                   extra=extracatalog,
-                                   extramarker=extramarkercatalog,
-                                   extraname=extranamecatalog,
-                                   fp=fp,
-                                   vmin=vmin,
-                                   vmax=vmax,
-                                   force=force)
     titletext = map_stations(inventory,
                                        bmap=bmap,
                                        fig=fig,
@@ -959,6 +981,7 @@ def eewmap(data,
            legend=True,
            lineauthors=None,
            stationgroups=None,
+           mapbounds=True,
            **kwargs):
 
     origin = data['event'].preferred_origin()
@@ -975,25 +998,28 @@ def eewmap(data,
     km=0
     while km<=radius:
         km,az,baz=gps2dist_azimuth(origin.latitude,
-                                                       origin.longitude,
-                                                       origin.latitude,
-                                                       origin.longitude+longitude_radius)
+                                    origin.longitude,
+                                    origin.latitude,
+                                    origin.longitude+longitude_radius)
         longitude_radius+=0.001
         
     latitude_radius = 0
     km=0
     while km<=radius:
         km,az,baz=gps2dist_azimuth(origin.latitude,
-                                                       origin.longitude,
-                                                       origin.latitude+latitude_radius,
-                                                       origin.longitude)
+                                    origin.longitude,
+                                    origin.latitude+latitude_radius,
+                                    origin.longitude)
         latitude_radius+=0.001
-    
+    if mapbounds:
+        mapbounds=[[origin.longitude-longitude_radius,
+                    origin.longitude+longitude_radius],
+                    [origin.latitude-latitude_radius,
+                    origin.latitude+latitude_radius]]
+    else:
+        mapbounds=None
     fig,ax,bmap = map_all(data['inventory'],
-                          mapbounds=[[origin.longitude-longitude_radius,
-                                      origin.longitude+longitude_radius],
-                                     [origin.latitude-latitude_radius,
-                                      origin.latitude+latitude_radius]],
+                          mapbounds=mapbounds,
                           stationgroups=stationgroups,
                           **kwargs)
         
@@ -1038,7 +1064,7 @@ def eewmap(data,
                                           phase_list=['tts'],
                                           receiver_depth_in_km=0)
         modtts+=[modelresidual['s']+numpy.nanmin([numpy.nan]+[a.time for a in arrivals])]
-    fmodel = scipy.interpolate.interp1d([0]+modtts,[0]+triald)
+    fmodel = scipy.interpolate.interp1d([0]+modtts,[0]+triald,fill_value="extrapolate")
     #print(modtts, magnitudes[0].creation_info.creation_time - origin.time)
     dblind = fmodel(max([0.01, magnitudes[0].creation_info.creation_time - origin.time ]))
         

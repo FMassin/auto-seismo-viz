@@ -4,13 +4,7 @@ from obspy.core import UTCDateTime
 import os
 from addons.get_events import get_events_updatedafter
 from addons.get_waveforms import get_events_waveforms,attach_distance,clean_inventorystream
-from addons.stream import ploteqdata,combinechannels
-from addons.core import eewmap
-from addons.catalog import performance_timelines
-from addons.event import animate
-from matplotlib.patheffects import withStroke
-from matplotlib.text import Text
-path_effects=[withStroke(linewidth=2,foreground="w")]
+from addons.stream import combinechannels
 
 def cleandata(catalog,eventstreams,eventinventories):
     for e,event in enumerate(catalog):
@@ -140,74 +134,3 @@ def event_data(catalog_uri='USGS',
             print('data/%s.%s.mseed'%(shorteventid,output))
         
     return cleandata(catalog,eventstreams,eventinventories)
-
-def event_plots(catalog,
-                eventstreams,
-                eventinventories, 
-                plots=True, 
-                animates=False, 
-                test=False,
-                **args):
-
-    saveopt = {'dpi':512,
-               'facecolor':'none',
-               'transparent':False}
-    for event, streams, inventory in zip(catalog,eventstreams,eventinventories):
-
-        shorteventid = str(event.resource_id).split('/')[-1]
-
-        if test:
-            pass#figs = plotstationdata(streams,event,inventory)
-            
-        if not plots==False and not plots==0 and not plots=='0' :
-
-            ## Plot data
-            fig = ploteqdata(streams['acc'].select(channel='*b'),event,inventory,lim=999)
-            fig.tight_layout()
-            for ax in fig.axes:
-                for t in ax.findobj(Text):
-                    if not t.get_path_effects():
-                        t.set(path_effects=path_effects) 
-            fig.savefig('data/%s_data.png'%shorteventid,bbox_inches=None,**saveopt)
-            print('data/%s_data.png'%shorteventid)
-
-            ## Map results
-            fig = eewmap({'event':event,
-                        'inventory':inventory},
-                        reference=False,
-                        stationgroups={})
-            
-            for ax in fig.axes:
-                for t in ax.findobj(Text):
-                    if not t.get_path_effects():
-                        t.set(path_effects=path_effects) 
-            fig.savefig('data/%s_map.png'%shorteventid,bbox_inches='tight',**saveopt)
-            print('data/%s_map.png'%shorteventid)
-
-
-            ## Plot results timeline
-            fig = performance_timelines(event)
-            for ax in fig.axes:
-                for t in ax.findobj(Text):
-                    if not t.get_path_effects():
-                        t.set(path_effects=path_effects) 
-            fig.savefig('data/%s_timeline.png'%shorteventid,bbox_inches='tight',**saveopt)
-            print('data/%s_timeline.png'%shorteventid)
-
-        if not animates==False and not animates==0 and not animates=='0' :
-        
-            ## Animate data and results
-            anim = animate(event,
-                        streams['acc'],
-                        streams['disp'],
-                        inventory)
-            anim.save('data/%s_anim.mp4'%shorteventid)#,dpi=300)
-            print('data/%s_anim.mp4'%shorteventid)
-
-def main(**args):
-
-        # Getting data
-        catalog,eventstreams,eventinventories = event_data(**args)
-        
-        # Creating plots
-        event_plots(catalog,eventstreams,eventinventories,**args)
