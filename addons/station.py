@@ -2,7 +2,7 @@
 from matplotlib.pyplot import figure
 from matplotlib.gridspec import  GridSpec, GridSpecFromSubplotSpec
 from matplotlib.ticker import AutoMinorLocator
-from numpy import meshgrid,logspace,log10,abs
+from numpy import meshgrid,logspace,log10,abs,median
 from obspy.imaging.cm import pqlx
 from obspy.signal.tf_misfit import cwt
 from matplotlib.pyplot import colorbar
@@ -64,7 +64,7 @@ def scalogram(tr,ax,output):
     f_min = 1/(npts*dt/8)
     f_max = 1/dt/4
     
-    s = cwt(tr.data, dt, 8, f_min, f_max)
+    s = cwt(tr.data-median(tr.data), dt, 8, f_min, f_max)
 
     x, y = meshgrid(t,
                     logspace(log10(f_min), 
