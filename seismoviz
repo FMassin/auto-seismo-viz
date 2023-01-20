@@ -35,38 +35,3 @@ if __name__ == '__main__':
         print('Arguments provided:')
         print(tmp)
 
-        # To do:
-        # - station and event tables
-        # - webhook notif
-        # - html or panel report
-        # - pip install
-        # - BETTER OPTIONS:
-        #from getopt import getopt, GetoptError
-        #py2 = sys.version_info < (3,)
-        #pipedinputs = sys.stdin if py2 else sys.stdin.buffer
-        #... = None
-        #
-        #try:
-        #    opts, args = getopt(sys.argv[1:], "x:...:",
-        #                        ["stdout", "...=", ])
-        #except GetoptError:
-        #    usage()
-        #    return 1
-        #
-        #out_channel = None
-        #
-        #
-        #for flag, arg in opts:
-        #    if flag in ("-c", "--stdout"):
-        #        out_channel = sys.stdout if py2 else sys.stdout.buffer
-        #    elif ... in ("-...", "--..."):
-        #        ... = arg
-        #    else:
-        #        usage()
-        #        if flag in ("-h", "--help"):
-        #            return 0
-        #        return 1
-        #
-        #if ...
-        #    sys.exit(1)
-
