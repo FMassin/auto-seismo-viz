@@ -1,6 +1,6 @@
 # Auto Seismo-Viz
 Automatic visualisation for seismic events  
-![Example map](data/2022swpksz_map.png)
+![Example map](data/2022swpksz_map.pngt)
 
 ## Install 
 ```bash
