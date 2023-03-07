@@ -218,7 +218,7 @@ jobs:
       - name: 💡 Run the main program # add nseconds=9999999999 ndays=9 limit=2 for full test
         id: seismoviz
         run: |
-          python ${{ github.workspace }}/seismoviz evplot catalog_uri=USGS,${{ secrets.INSIVUMEH_EEW_URL }} minmagnitude=4 longitude=-90.75 latitude=15. maxradius=4 debug=1
+          python ${{ github.workspace }}/seismoviz evplot catalog_uri=USGS,${{ secrets.INSIVUMEH_EEW_URL }} inventory_url=${{ secrets.INSIVUMEH_DATA_URL }} stream_url=${{ secrets.INSIVUMEH_DATA_URL }} minmagnitude=4 longitude=-90.75 latitude=15. maxradius=4 debug=1
       
       - name: 🖥️ Check file existence
         id: check_files
