@@ -960,11 +960,19 @@ def performance_timelines(event,
 
     for i,data in enumerate(axesdata):
         for key in data['y']:
-            for e in range(9):
-                data['label'][key] = data['label'][key].replace('e-%02.0f'%e,'$e^{-%.0f}$'%e)
-                data['label'][key] = data['label'][key].replace('e%02.0f'%e,'$e^{%.0f}$'%e)
-            data['label'][key] = data['label'][key].replace('N-','S')
-            data['label'][key] = data['label'][key].replace('E-','W')
+
+            if key in data['label']:
+                for e in range(9):
+                    data['label'][key] = data['label'][key].replace('e-%02.0f'%e,'$e^{-%.0f}$'%e)
+                    data['label'][key] = data['label'][key].replace('e%02.0f'%e,'$e^{%.0f}$'%e)
+                data['label'][key] = data['label'][key].replace('N-','S')
+                data['label'][key] = data['label'][key].replace('E-','W')
+            else:
+                print('No',key,'key in data["label"]:')
+                print(data['label'])
+                print('..adding None.')
+                data['label'][key] = None
+
             indexes=numpy.argsort(data['x'][key])
             color='C0'
             if key[0] in magnitude_types:
