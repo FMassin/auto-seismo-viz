@@ -18,12 +18,15 @@ def fixrespunit(inventory,debug=False):
     for n,net in enumerate(inventory):
         for s,stat in enumerate(net):
             for c,cha in enumerate(stat):
-                for a,stage in enumerate(cha.response.response_stages):
-                    input_units = cha.response.instrument_sensitivity.input_units.replace('m/s','M/S')
-                    inventory[n][s][c].response.instrument_sensitivity.input_units=input_units
-                    if stage.input_units is not None :#and "m/s" in stage.input_units:
-                        input_units = stage.input_units.replace('m/s','M/S')
-                        inventory[n][s][c].response.response_stages[a].input_units = input_units
+
+                if (sensitivity:=cha.response.instrument_sensitivity) is not None:
+
+                    inventory[n][s][c].response.instrument_sensitivity.input_units = sensitivity.input_units.replace('m/s','M/S')
+
+                    for a,stage in enumerate(cha.response.response_stages):
+                        if (units:=stage.input_units) is not None :#and "m/s" in stage.input_units:
+                            
+                            inventory[n][s][c].response.response_stages[a].input_units = units.replace('m/s','M/S')
     
     return inventory #anyways happens in place ???
 
