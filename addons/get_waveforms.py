@@ -299,9 +299,17 @@ def clean_inventorystream(inventory,stream):
     rmtr = []
     for tr in stream:
         try:
-            inventory.get_response(tr.id, tr.stats.starttime)
+            response = inventory.get_response(tr.id, tr.stats.starttime)
         except:
             rmtr += [tr]
+            continue
+        if response is None:
+            rmtr += [tr]
+        elif response.instrument_sensitivity is None:
+            rmtr += [tr]
+        elif response.instrument_sensitivity.value is None:
+            rmtr += [tr]
+
     for tr in rmtr:
         print('Removing (no response)',tr)
         stream.remove(tr)
