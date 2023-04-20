@@ -205,71 +205,71 @@ jobs:
 
       - run: echo "🍏 This job's status is ${{ job.status }}."
     
-  Viz-EEW-INSIVUMEH:
-    runs-on: ubuntu-latest
-    steps:
-      - name: 🔎 Check out repository code
-        uses: actions/checkout@v3
+  # Viz-EEW-INSIVUMEH:
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: 🔎 Check out repository code
+  #       uses: actions/checkout@v3
       
-      - name: 🐧 Install python dependencies
-        run: |
-          python -m pip install --requirement ${{ github.workspace }}/requirements.txt      
+  #     - name: 🐧 Install python dependencies
+  #       run: |
+  #         python -m pip install --requirement ${{ github.workspace }}/requirements.txt      
 
-      - name: 💡 Run the main program # add nseconds=9999999999 ndays=9 limit=2 for full test
-        id: seismoviz
-        run: |
-          python ${{ github.workspace }}/seismoviz evplot catalog_uri=USGS,${{ secrets.INSIVUMEH_EEW_URL }} inventory_url=${{ secrets.INSIVUMEH_DATA_URL }} stream_url=${{ secrets.INSIVUMEH_DATA_URL }} minmagnitude=4 longitude=-90.75 latitude=15. maxradius=4 debug=1
+  #     - name: 💡 Run the main program # add nseconds=9999999999 ndays=9 limit=2 for full test
+  #       id: seismoviz
+  #       run: |
+  #         python ${{ github.workspace }}/seismoviz evplot catalog_uri=USGS,${{ secrets.INSIVUMEH_EEW_URL }} inventory_url=${{ secrets.INSIVUMEH_DATA_URL }} stream_url=${{ secrets.INSIVUMEH_DATA_URL }} minmagnitude=4 longitude=-90.75 latitude=15. maxradius=4 debug=1
       
-      - name: 🖥️ Check file existence
-        id: check_files
-        uses: andstor/file-existence-action@v1
-        with:
-          files: "data/*.png,data/*ml,data/*seed"
+  #     - name: 🖥️ Check file existence
+  #       id: check_files
+  #       uses: andstor/file-existence-action@v1
+  #       with:
+  #         files: "data/*.png,data/*ml,data/*seed"
 
-      - name: 🎁 Archive all data and visuals in workspace  as an artifact for 1 day
-        if: steps.check_files.outputs.files_exists == 'true'
-        uses: actions/upload-artifact@v3
-        id: archive
-        with:
-          name: Data-and-Vizuals-INSIVUMEH
-          path: |
-            ${{ github.workspace }}/data/*ml
-            ${{ github.workspace }}/data/*seed
-            ${{ github.workspace }}/data/*.png 
-            ${{ github.workspace }}/data/*.mp4
-          retention-days: 1
-          if-no-files-found: error
+  #     - name: 🎁 Archive all data and visuals in workspace  as an artifact for 1 day
+  #       if: steps.check_files.outputs.files_exists == 'true'
+  #       uses: actions/upload-artifact@v3
+  #       id: archive
+  #       with:
+  #         name: Data-and-Vizuals-INSIVUMEH
+  #         path: |
+  #           ${{ github.workspace }}/data/*ml
+  #           ${{ github.workspace }}/data/*seed
+  #           ${{ github.workspace }}/data/*.png 
+  #           ${{ github.workspace }}/data/*.mp4
+  #         retention-days: 1
+  #         if-no-files-found: error
 
-      - name: 🎉 Send mail
-        if: steps.archive.outcome == 'success'
-        uses: dawidd6/action-send-mail@v3
-        with:
-          server_address: smtp.gmail.com
-          server_port: 465
-          secure: true
-          username: ${{secrets.MAIL_USERNAME}}
-          password: ${{secrets.MAIL_PASSWORD}}
-          subject: Github Actions job result
-          to: ${{secrets.MAIL_TO}}
-          from: ${{ github.repository }} # Luke Skywalker # <user@example.com>
-          html_body: |
-              <!DOCTYPE html>
-              <html>
-              <body>
-              <h1>New event at INSIVUMEH</h1>
-              <p>Event processing of ${{github.repository}} for INSIVUMEH completed successfully! </p>
-              <p>Results available for 1 day here ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }} </p>
-              </body>
-              </html>
-          #cc: kyloren@example.com,leia@example.com
-          #bcc: r2d2@example.com,hansolo@example.com
-          #reply_to: luke@example.com
-          #in_reply_to: <random-luke@example.com>
-          ignore_cert: true
-          attachments: ${{ github.workspace }}/data/*.png
-          priority: high
+  #     - name: 🎉 Send mail
+  #       if: steps.archive.outcome == 'success'
+  #       uses: dawidd6/action-send-mail@v3
+  #       with:
+  #         server_address: smtp.gmail.com
+  #         server_port: 465
+  #         secure: true
+  #         username: ${{secrets.MAIL_USERNAME}}
+  #         password: ${{secrets.MAIL_PASSWORD}}
+  #         subject: Github Actions job result
+  #         to: ${{secrets.MAIL_TO}}
+  #         from: ${{ github.repository }} # Luke Skywalker # <user@example.com>
+  #         html_body: |
+  #             <!DOCTYPE html>
+  #             <html>
+  #             <body>
+  #             <h1>New event at INSIVUMEH</h1>
+  #             <p>Event processing of ${{github.repository}} for INSIVUMEH completed successfully! </p>
+  #             <p>Results available for 1 day here ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }} </p>
+  #             </body>
+  #             </html>
+  #         #cc: kyloren@example.com,leia@example.com
+  #         #bcc: r2d2@example.com,hansolo@example.com
+  #         #reply_to: luke@example.com
+  #         #in_reply_to: <random-luke@example.com>
+  #         ignore_cert: true
+  #         attachments: ${{ github.workspace }}/data/*.png
+  #         priority: high
 
-      - run: echo "🍏 This job's status is ${{ job.status }}."
+  #     - run: echo "🍏 This job's status is ${{ job.status }}."
     
 
 
