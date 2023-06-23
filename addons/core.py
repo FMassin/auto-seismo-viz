@@ -78,10 +78,14 @@ def scfinderauthor(origin, lineauthors=None):
     geocode = geocoder.osm([origin.latitude,
                             origin.longitude],
                            method='reverse').json
-    if geocode is not None and geocode['country'] in ['Switzerland','France']:
-        if ('Valais' in geocode['region'] or
-            'Glarus' in geocode['address'] or
-            'Haute-Savoie' in geocode['county']):
+    print("==============\ngeocode")
+    print(geocode)
+    
+    if geocode is not None and geocode['country'] in ['Schweiz/Suisse/Svizzera/Svizra','Switzerland','France']:
+        print(geocode)
+        if ( geocode['region'] in ['Valais/Wallis', 'Valais'] or
+            geocode['county'] in ['Sierre','Haute-Savoie' ] or
+            'Glarus' in geocode['address']):
             lineauthors += ['scfdalpine']
         else:
             lineauthors += ['scfdforela']
@@ -948,7 +952,7 @@ def plot_focmech(event,lineauthors,ax,color='C1'):
         
     axins.set(xlim=(-50, 50), ylim=(-50, 50))
     
-def getradius(origin,inventory):
+def getradius(origin,inventory,maxdist=1.5):
 
     minlatitude=origin.latitude
     maxlatitude=origin.latitude
@@ -956,13 +960,13 @@ def getradius(origin,inventory):
     maxlongitude=origin.longitude
     for n in inventory:
         for s in n:
-            if minlatitude > s.latitude:
+            if minlatitude > s.latitude and s.latitude>origin.latitude-maxdist:
                 minlatitude = s.latitude
-            if maxlatitude < s.latitude:
+            if maxlatitude < s.latitude and s.latitude<origin.latitude+maxdist:
                 maxlatitude = s.latitude
-            if minlongitude > s.longitude:
+            if minlongitude > s.longitude and s.longitude>origin.longitude-maxdist:
                 minlongitude = s.longitude
-            if maxlongitude < s.longitude:
+            if maxlongitude < s.longitude and s.longitude<origin.longitude+maxdist:
                 maxlongitude = s.longitude
     
     return max([ gps2dist_azimuth(origin.latitude,origin.longitude,

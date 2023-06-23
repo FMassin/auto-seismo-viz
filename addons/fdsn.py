@@ -21,9 +21,12 @@ def cleandata(catalog,eventstreams,eventinventories):
             eventstreams[e][output].attach_response(eventinventories[e])
             eventstreams[e][output] = attach_distance(eventstreams[e][output],eventinventories[e],event.preferred_origin())
 
-            ## Combine horizontal data
-            tridim , horiz = combinechannels(eventstreams[e][output], combine='both')
-            eventstreams[e][output] += horiz.select(channel='*b')
+            if (horiz:=stream.select(channel='*X')):
+                eventstreams[e][output] += horiz
+            else:
+                ## Combine horizontal data
+                tridim , horiz = combinechannels(eventstreams[e][output], combine='both')
+                eventstreams[e][output] += horiz.select(channel='*b')
 
     return catalog,eventstreams,eventinventories
 
@@ -42,6 +45,10 @@ def event_data(catalog_uri='USGS',
          **get_events_wargs):
 
     if files is not None :
+        
+        if 'xml' not in files and 'mseed' not in files:
+            files='data/%s.quakeml,data/%s.%s.mseed,data/%s.stationxml'%(files,files,'%s',files)
+
         if isinstance(files,str):
             files=files.split(',')
 

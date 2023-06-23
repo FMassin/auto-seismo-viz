@@ -298,11 +298,28 @@ def clean_inventorystream(inventory,stream):
     #Remove traces without response, cha, sta, net without data from inventory
     rmtr = []
     for tr in stream:
-        try:
-            response = inventory.get_response(tr.id, tr.stats.starttime)
-        except:
-            rmtr += [tr]
-            continue
+        response = None
+        if tr.stats.location not in ['PV','PA','PD','EV','EA','ED']:
+            try:
+                response = inventory.get_response(tr.id, tr.stats.starttime)
+            except:
+                rmtr += [tr]
+                continue
+        else:
+            try:
+                response = inventory.select(network=tr.stats.network,
+                                            station=tr.stats.station,
+                                            channel=tr.stats.channel.replace('X','*'),
+                                            time=tr.stats.starttime)
+                mseedid='%s.%s.%s.%s'%(tr.stats.network,
+                                       tr.stats.station,
+                                       response[-1][-1][-1].location_code,
+                                       response[-1][-1][-1].code)
+                response = inventory.get_response(mseedid, tr.stats.starttime)
+            except:
+                rmtr += [tr]
+                continue
+
         if response is None:
             rmtr += [tr]
         elif response.instrument_sensitivity is None:
@@ -320,23 +337,28 @@ def clean_inventorystream(inventory,stream):
             for c,cha in enumerate(sta):
                 mseedid = {'network':net.code,
                            'station':sta.code,
-                           'location':cha.location_code,
-                           'channel':cha.code}
+                           #'location':cha.location_code,
+                           'channel':cha.code.replace('X','*')}
                 if not len(stream.select(**mseedid)):
-                    #print('Cannot find data for',mseedid)
                     rmcha+=[mseedid]
             
     for mseedid in rmcha:
         print('Removing',' '.join(["%s: %s"%(k,mseedid[k]) for k in mseedid]))
         tmp = inventory.remove(**mseedid)
         inventory = tmp
+
+    
+    print('Stream left:')
+    print(stream)
+    print('Inventory left:')
+    print(inventory)
     
     return inventory,stream
 
 def get_events_waveforms(self,
                          catalog,
                          inventory_client=None,
-                         maxStraveltime=40.,
+                         maxStraveltime=20.,
                          location='*', 
                          channel='SN*,SH*,EN*,EH*,HN*,HH*,HG*',
                          model=TauPyModel('iasp91'),
@@ -361,7 +383,26 @@ def get_events_waveforms(self,
     
     eventstreams=[]
     eventinventories=[]
-    for event in catalog:
+    for event in catalog:        
+
+        if False: # Load files if available
+            if 'xml' not in files and 'mseed' not in files:
+                files='data/%s.quakeml,data/%s.%s.mseed,data/%s.stationxml'(files,files,'%s',files)
+
+            if isinstance(files,str):
+                files=files.split(',')
+
+            from obspy import read_events, read_inventory, read
+            
+            if debug:
+                print('Expecting files=<Ev. catalog>,<ev#1 stream (%s for "raw" and "acc")>,<ev#1 inventory>,<ev#2 stream>,<ev#2 inventory>...')
+            
+            catalog = read_events(files[0])
+            eventstreams = [{o:read(f%o) for o in ['raw','acc','vel','disp'] if os.path.exists(f%o) } for f in files[1::2] ]
+            eventinventories = [read_inventory(f) for f in files[2::2]]
+
+            return cleandata(catalog,eventstreams,eventinventories)
+
         origin = event.preferred_origin()
 
         # Get all stations without resp

@@ -21,7 +21,7 @@ def event_plots(catalog,
             
 
         ## Plot data
-        fig = ploteqdata(streams['acc'].select(channel='*b'),event,inventory,lim=999)
+        fig = ploteqdata(streams['acc'].select(channel='*b')+streams['acc'].select(channel='*X'),event,inventory,lim=250)
         fig.tight_layout()
         for ax in fig.axes:
             for t in ax.findobj(Text):
@@ -29,7 +29,7 @@ def event_plots(catalog,
                     t.set(path_effects=path_effects) 
         fig.savefig('data/%s_data.png'%shorteventid,bbox_inches=None,**saveopt)
         print('data/%s_data.png'%shorteventid)
-
+        
         ## Map results
         fig = eewmap({'event':event,
                     'inventory':inventory},

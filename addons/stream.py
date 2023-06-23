@@ -125,7 +125,7 @@ def ploteqdata(self, #eqdata[output].select(channel='*b')
                cmap='nipy_spectral',#tab20b'
                mtypes={'MVS':'C2','Mfd':'C1'},
                ax=None,
-               lim=30,
+               lim=150,
                combine='both',
                nopgalabel=False,
                nostationlabel=False,
@@ -158,11 +158,17 @@ def ploteqdata(self, #eqdata[output].select(channel='*b')
             tmax=numpy.nanmax([tmax, tr.times(type="utcdatetime")[imax]])
             vmax+=[numpy.nanmax(tr.data)]
     for tr in self:
-        if numpy.nanmax(tr.data[:99]) > 0 :
-            vmin+=[numpy.nanmax(tr.data[:99])]
+        prenoise = max([1, int(len(tr.data)*0.05)])
+        if numpy.nanmax(tr.data[:prenoise]) > 0 :
+            vmin+=[numpy.nanmax(tr.data[:prenoise])]
 
     vmin=numpy.nanpercentile(vmin,84)
     vmax=numpy.nanpercentile(vmax,100)*1.1
+    
+    alldata = [data for tr in self for data in tr.data if data > 0]
+    vmin=numpy.nanpercentile(alldata,30)
+    vmax=numpy.nanpercentile(alldata,99.9)
+
     norm=matplotlib.colors.LogNorm(vmin=vmin*gain,
                                    vmax=vmax*gain)
     print(vmin,'*',gain,vmax,'*',gain)
@@ -465,7 +471,7 @@ def ploteqdata(self, #eqdata[output].select(channel='*b')
                                     'weight':'bold'}, 
               loc=2, 
               labelspacing=-.2)
-    
+    #ax.set_xlim(right=77)
     return ax.figure
 
 def select(stream,

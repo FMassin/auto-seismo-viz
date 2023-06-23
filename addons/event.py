@@ -247,7 +247,7 @@ def map_event(event,
           'path_effects':path_effects}
     fig.swaves = []
 
-
+    print(stream)
     cmap = matplotlib.cm.nipy_spectral
     normopts = {'vmin': min([numpy.percentile(abs(tr.data[tr.data!=0]/0.0981),8) for tr in stream]), 
                 'vmax': max([max(abs(tr.data[tr.data!=0]/0.0981)) for tr in stream])*1.1
@@ -762,8 +762,8 @@ def animate(event,
             acc,
             disp,
             inventory,
-            duration=55,
-            frames=55*6,
+            duration=30,
+            frames=30*6,
             **opts):
 
     if frames is None:
@@ -773,13 +773,13 @@ def animate(event,
 
     fig = map_event(event,
                     disp,
-                    acc.select(channel='*b'),
+                    acc.select(channel='*b')+acc.select(channel='*X'),
                     #epsg=3857,
                     frames=frames,
                     duration=duration,
                     radius=radius,
                     **opts)
-    add_mmi(acc.select(channel='*b'),
+    add_mmi(acc.select(channel='*b')+acc.select(channel='*X'),
                 event,
                 fig.insets[1])
 
