@@ -4,3 +4,7 @@ data/*
 data-bu/*
 test.ipynb
 test/*
+data/*
+exports/*
+source_spec/*
+viewer/*
