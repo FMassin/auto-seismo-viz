@@ -164,7 +164,7 @@ def ploteqdata(self, #eqdata[output].select(channel='*b')
 
     vmin=numpy.nanpercentile(vmin,84)
     vmax=numpy.nanpercentile(vmax,100)*1.1
-    
+
     alldata = [data for tr in self for data in tr.data if data > 0]
     vmin=numpy.nanpercentile(alldata,30)
     vmax=numpy.nanpercentile(alldata,99.9)
@@ -175,7 +175,7 @@ def ploteqdata(self, #eqdata[output].select(channel='*b')
     cmap=matplotlib.pyplot.get_cmap(cmap)
     eprs=[]
     rs=[]
-        
+
     skipped=[]
     skippedamp=[]
     withStroke = matplotlib.patheffects.withStroke
@@ -186,17 +186,17 @@ def ploteqdata(self, #eqdata[output].select(channel='*b')
         epr,r=tracedistance(tr,
                       inventory,
                       event.preferred_origin())
-        if epr>=lim:
+        imax=numpy.argmax(tr.data)
+        times=tr.times(type="utcdatetime")[:imax+1]
+        t=[v-time for v in times]
+        if epr>=lim or t[-1]>120:
             skipped+=[tr.id]
             continue
         eprs+=[epr]
         rs+=[r]
-        imax=numpy.argmax(tr.data)
-        times=tr.times(type="utcdatetime")[:imax+1]
         d=[epr for v in times]
         y=[numpy.nanmax(tr.data[:i+1])*gain for i,v in enumerate(tr.data[:imax+1])]
         s=[1 for v in times]
-        t=[v-time for v in times]
         skip=False
         for test in [t,y,d,s]:
             if True in numpy.isnan(numpy.array(t)):
@@ -225,7 +225,7 @@ def ploteqdata(self, #eqdata[output].select(channel='*b')
                 data_label='  %s'%(tr.id)
             if not nopgalabel or not nostationlabel:
                 if True:
-                    axx.annotate(data_label, 
+                    axx.annotate(data_label,
                                   xy=(x, epr), xycoords="data",
                                   ha='left',va='center',
                                   size='xx-small',
@@ -253,12 +253,12 @@ def ploteqdata(self, #eqdata[output].select(channel='*b')
         print('Skipped further than %d km: '%(lim)+', '.join(skipped))
     if len(skippedamp):
         print('Skipped smaller than vmin color %g: '%(vmin)+', '.join(skippedamp))
-        
+
     opts={'markersize':15**.5,'color':'r','markeredgewidth':0}
     #ax.plot(numpy.nan,1,label='PGA$_{obs}$',**opts)
-    
+
     cax = inset_axes(ax,
-                    width="%d%%"%((1-1/gold)*100),  
+                    width="%d%%"%((1-1/gold)*100),
                     height="1%",  # height : 3%
                     loc='upper right',
                     borderpad=-0.25)
@@ -301,14 +301,14 @@ def ploteqdata(self, #eqdata[output].select(channel='*b')
 #    cax.minorticks_off()
     cax.set_xlim(vmin*gain, vmax*gain)
     cax.xaxis.set_minor_locator(matplotlib.ticker.LogLocator(base=10.0, subs=numpy.arange(2, 10) * .1, numticks=100))
-    
+
     cbb=cax.twiny()
     cbb.set_xlabel('Ground motion acceleration (m/s$^2$)',fontsize='small')
     cbb.set_xscale('log')
     cbb.set_xlim(vmin*gain, vmax*gain)
     cbb.xaxis.set_major_formatter(matplotlib.ticker.FormatStrFormatter("%g"))
     cbb.tick_params(axis='x',labelsize='small')
-        
+
     P=[]
     S=[]
     ttdepth=depth
@@ -336,7 +336,7 @@ def ploteqdata(self, #eqdata[output].select(channel='*b')
     ax.plot(P,PSdist,':',label='P-waves',**opts)#numpy.sort(eprs)
     ax.plot(S,PSdist,'--',label='S-waves',**opts)#numpy.sort(eprs)
     ax.set_ylim(bottom=0)
-    
+
     ax.set_ylim(ax.get_ylim())
     ax.set_xlim(ax.get_xlim())
     ealiest={}
@@ -368,7 +368,7 @@ def ploteqdata(self, #eqdata[output].select(channel='*b')
                          linewidth=1,
                          #alpha=0.1,
                          zorder=-3)
-            
+
     ax.invert_yaxis()
     ax.tick_params(axis='both',labelsize='small')
     axx.tick_params(axis='both',labelsize='small')
@@ -376,7 +376,7 @@ def ploteqdata(self, #eqdata[output].select(channel='*b')
     axx.set_ylim(ax.get_ylim())
     fmt = lambda x, pos: "%1g"%round((x**2+(event.preferred_origin().depth/1000)**2)**.5,1)
     axx.yaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(fmt))
-    
+
     #ax.set_yscale('log')
     ax.set_ylabel('Epicentral distance (km)',fontsize='small')
     ax.grid(zorder=-9)
@@ -417,11 +417,11 @@ def ploteqdata(self, #eqdata[output].select(channel='*b')
                     #bbox={'fc': '0.8', 'pad': 2},
                     #rotation=90
                     )
-                  
+
     for a in [ax,axx]:
         for axis in [a.xaxis,a.yaxis]:
             axis.set_minor_locator(matplotlib.ticker.AutoMinorLocator())
-    
+
     if hasattr(event,'event_descriptions'):
         desc = ','.join([d.text for d in event.event_descriptions])
     else:
@@ -444,7 +444,7 @@ def ploteqdata(self, #eqdata[output].select(channel='*b')
                         event_type,
                         desc)
 
-                     
+
     descs = ', '.join([desc.text for desc in event.event_descriptions if 'region' in desc.type])
     t = '%s\nM$_{%s}$%.1f, %s, %.1fkm deep'
     if event.preferred_magnitude() is not None:
@@ -465,11 +465,11 @@ def ploteqdata(self, #eqdata[output].select(channel='*b')
                  fontsize='small'
                  )
 
-    ax.legend([],[], 
-              title=legend_title(event,mtypes), 
+    ax.legend([],[],
+              title=legend_title(event,mtypes),
               title_fontproperties={'size':'small',
-                                    'weight':'bold'}, 
-              loc=2, 
+                                    'weight':'bold'},
+              loc=2,
               labelspacing=-.2)
     #ax.set_xlim(right=77)
     return ax.figure
@@ -588,13 +588,13 @@ def combinechannels(stream = Stream(),
                         print('WARNING! No reference trace found in ref for ')
                         print(trace)
                     continue
-                        
+
                 iref, itr, starttime, npts = overlap(reftrace,trace)
                 tr = Trace(header=trace.stats) #reftrace.copy()
                 tr.stats.starttime = starttime
                 tr.stats.npts = npts
                 tr.stats.channel = tr.stats.channel+difference_code
-                
+
                 if isinstance(trace.data[0] , UTCDateTime):
                     tr.data = numpy.asarray([ reftrace.data[iref][i]-d for i,d in enumerate(trace.data[itr])])
                 else:
