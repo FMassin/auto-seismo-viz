@@ -80,7 +80,7 @@ def scfinderauthor(origin, lineauthors=None):
                            method='reverse').json
     print("==============\ngeocode")
     print(geocode)
-    
+
     if geocode is not None and geocode['country'] in ['Schweiz/Suisse/Svizzera/Svizra','Switzerland','France']:
         print(geocode)
         if ( geocode['region'] in ['Valais/Wallis', 'Valais'] or
@@ -150,7 +150,7 @@ def plot_eewsourcepoints(event,
                       zorder=99-k,
                       path_effects=[matplotlib.patheffects.withStroke(linewidth=3,
                                                                       foreground=[1,1,1,alpha])])
-                                                                                                       
+
         l.set_solid_capstyle('round')
         label=None
 
@@ -187,13 +187,13 @@ def plot_eewsourcelines(event,
                 strike = float(c.text)
             if 'likelyhood' == str(c.resource_id).split('/')[-1]:
                 likelyhood = float(c.text)
-        
+
         alpha = m.creation_info.creation_time - event.preferred_origin().time
         alpha = alpha - alphanorm
         alpha = (max([0.05,1-alpha/(alphanorm*2)]))#**.3
         path_effects=[matplotlib.patheffects.withStroke(linewidth=4,
                                                       foreground=[1,1,1,alpha])]
-        
+
         if length is not None and drawline:
             elon = m.origin_id.get_referred_object().longitude+\
             length/110.*\
@@ -386,7 +386,7 @@ def get_aspectratio(catalog=Catalog(),
                     figsize=4):
 
     lons, lats = search(inventory, fields=['longitude','latitude'], levels=['networks','stations'])
-    
+
     for e in catalog:
         for o in e.origins:
             lats.append(o.latitude)
@@ -439,7 +439,7 @@ def nicemap(catalog=Catalog(),
                         inventory=inventory,
                         aspectratio=aspectratio,
                         figsize=figsize)
-        
+
         y = lats.copy()
         x = lons.copy()
 
@@ -543,7 +543,7 @@ def nicemap(catalog=Catalog(),
                                     zorder=-9999)
             im1.set_alpha(.8)
 
-    
+
     steps=numpy.asarray([ 0.001,0.0025,0.005,0.01,0.025,0.05,0.1,0.25,.5,1,2.5,5,10,25,50,100,250,500,1000])
     if aspectratio>1:
         step = steps[numpy.argmin(abs((max(lons)-min(lons))/5 - steps))]
@@ -581,13 +581,13 @@ def nicemap(catalog=Catalog(),
     l.set_alpha(alpha)
     l=bmap.drawcountries(linewidth=1)
     l.set_alpha(alpha)
-    
+
     #l=bmap.drawstates(linewidth=.5,
     #                  color='w')
     #l.set_alpha(alpha)
     #l=bmap.drawstates(linewidth=.25)
     #l.set_alpha(alpha)
-    
+
     #shapefile='/Users/fmassin/Documents/Data/misc/tectonicplates/PB2002_plates'
     import matplotlib._color_data as mcd
     if glob.glob('%s*'%shapefile):
@@ -871,7 +871,9 @@ def fixtissot(polygon,bmap,rad,lon):
 
 def plot_focmech(event,lineauthors,ax,color='C1'):
     pos = ax.get_position()
-    axins = ax.figure.add_axes([pos.x1-pos.width/6,pos.y1-pos.height/6,pos.width/3,pos.height/3],
+    axins = ax.figure.add_axes([pos.x1-pos.width/6,
+                                pos.y1-pos.height/6,
+                                pos.width/3,pos.height/3],
                          facecolor='None',
                                    zorder=999,
                                    frame_on=False)
@@ -881,7 +883,8 @@ def plot_focmech(event,lineauthors,ax,color='C1'):
     cmap = matplotlib.cm.get_cmap('bwr')
     opts= {'xy':(0, 0), 'width':50,
            'facecolor':'0.5',
-           'edgecolor':'None'
+           'edgecolor':'k',
+           #'linewidth':3,
            #'alpha':0.5
           }
     focmec = event.preferred_focal_mechanism()
@@ -891,19 +894,19 @@ def plot_focmech(event,lineauthors,ax,color='C1'):
     fm = [focmec.nodal_planes.nodal_plane_1.strike,
               focmec.nodal_planes.nodal_plane_1.dip,
               focmec.nodal_planes.nodal_plane_1.rake]
-    bball = obspy.imaging.source.beach(fm,**opts)
+    bball = beach(fm,**opts)
     axins.add_collection(bball)
 
-    opts['nofill']=True
-    opts['edgecolor']='k'
-    opts['linewidth']=1
+    #opts['nofill']=True
+    opts['edgecolor']='None'
+    #opts['linewidth']=1
     if hasattr(focmec.moment_tensor,'tensor'):
         mtensor = focmec.moment_tensor.tensor
         mt = [mtensor.m_rr, mtensor.m_tt, mtensor.m_pp,
               mtensor.m_rt, mtensor.m_rp, mtensor.m_tp]
-        bball = obspy.imaging.source.beach(mt,**opts)
+        bball = beach(mt,**opts)
     else:
-        bball = obspy.imaging.source.beach(fm,**opts)
+        bball = beach(fm,**opts)
     axins.add_collection(bball)
 
     opts['edgecolor']=color
@@ -918,7 +921,7 @@ def plot_focmech(event,lineauthors,ax,color='C1'):
             if 'strike' in str(c.resource_id):
                 magnitudes+=[m]
                 break
-        
+
     creation_delays=[m.creation_info.creation_time-event.preferred_origin().time for m in magnitudes]
     for m in magnitudes:
         for c  in m.comments:
@@ -934,7 +937,7 @@ def plot_focmech(event,lineauthors,ax,color='C1'):
                 #print(delta, alpha, 1-alpha**.15)
                 opts['alpha'] = 1-alpha**.2
                 opts['linewidth'] = (1-alpha**.2)
-                
+
                 bball = beach(f,**opts)
                 axins.add_collection(bball)
                 x = 35*numpy.cos(numpy.deg2rad(f[0]))
@@ -949,9 +952,9 @@ def plot_focmech(event,lineauthors,ax,color='C1'):
                                                     foreground=color),
                                           withStroke(linewidth=2,
                                                      foreground="w")])
-        
+
     axins.set(xlim=(-50, 50), ylim=(-50, 50))
-    
+
 def getradius(origin,inventory,maxdist=1.5):
 
     minlatitude=origin.latitude
@@ -968,7 +971,7 @@ def getradius(origin,inventory,maxdist=1.5):
                 minlongitude = s.longitude
             if maxlongitude < s.longitude and s.longitude<origin.longitude+maxdist:
                 maxlongitude = s.longitude
-    
+
     return max([ gps2dist_azimuth(origin.latitude,origin.longitude,
                                     origin.latitude,minlongitude)[0],
                    gps2dist_azimuth(origin.latitude,origin.longitude,
@@ -1006,7 +1009,7 @@ def eewmap(data,
                                     origin.latitude,
                                     origin.longitude+longitude_radius)
         longitude_radius+=0.001
-        
+
     latitude_radius = 0
     km=0
     while km<=radius:
@@ -1026,14 +1029,14 @@ def eewmap(data,
                           mapbounds=mapbounds,
                           stationgroups=stationgroups,
                           **kwargs)
-        
+
     plot_eewsourcepoints(event=data['event'],
                          bmap=fig.bmap)
     plot_eewsourcelines(event=data['event'],
                         authors=lineauthors,
                         drawline=drawline,
                         bmap=fig.bmap)
-    
+
     magnitudes = []
     for m in data['event'].magnitudes:
         if (m.creation_info.author is not None and
@@ -1042,7 +1045,7 @@ def eewmap(data,
             magnitudes += [m]
     indexes = numpy.argsort([m.creation_info.creation_time for m in magnitudes])
     magnitudes = [magnitudes[i] for i in indexes]
-    
+
     deglatatlon = haversine(origin.longitude,
                                    origin.latitude-.5,
                                    origin.longitude,
@@ -1058,7 +1061,7 @@ def eewmap(data,
     else:
         dblind=0
     #print(magnitudes[0].creation_info.creation_time - origin.time,dblind,deglatatlon)
-    
+
     modelresidual,model=get_velmodel_correction(data['event'],data['inventory'],radius/1000)
     triald=list(numpy.arange(((radius*2/1000)**2*2)**.5/2))
     modtts=[]
@@ -1071,7 +1074,7 @@ def eewmap(data,
     fmodel = scipy.interpolate.interp1d([0]+modtts,[0]+triald,fill_value="extrapolate")
     #print(modtts, magnitudes[0].creation_info.creation_time - origin.time)
     dblind = fmodel(max([0.01, magnitudes[0].creation_info.creation_time - origin.time ]))
-        
+
     polygon = fig.bmap.tissot(origin.longitude,
                     origin.latitude,
                     dblind / deglatatlon,
@@ -1083,9 +1086,9 @@ def eewmap(data,
                     label='Late alert\n%d km'%dblind,
                     path_effects=[matplotlib.patheffects.withStroke(linewidth=4,
                                                                     foreground="white")])
-    
+
     fixtissot(polygon,fig.bmap,dblind,origin.longitude)
-    
+
     mmis=['I','II','III','IV','V','VI','VII','IIX','IIX','X','XI','XII']
     mmii=-1
     d=9999
@@ -1102,7 +1105,7 @@ def eewmap(data,
     triald = f(mmi)
     refmmi = mmis[triald>1]#(dblind/4)]
     d = triald[triald>1]
-        
+
     withStroke=matplotlib.patheffects.withStroke
     for t in range(len(d)):
         label=None
@@ -1119,7 +1122,7 @@ def eewmap(data,
                         path_effects=[withStroke(linewidth=4,
                                                  foreground="white")])
         fixtissot(polygon,fig.bmap,d[t],origin.longitude)
-        
+
         if t>0:
             pass#continue
         if t==0:
@@ -1154,7 +1157,7 @@ def eewmap(data,
                         path_effects=[withStroke(linewidth=2,
                                                  foreground="w")])
 
-    
+
     if delaystep is not None and delaystep>0:
         delay=0
         while dblind<radius/1000:#*1.5:
@@ -1192,9 +1195,9 @@ def eewmap(data,
 
     if legend:
         fig.bmap.ax.legend(ncol=1,
-                           title=legend_title(data['event'],['Mfd', 'MVS']), 
+                           title=legend_title(data['event'],['Mfd', 'MVS']),
                            title_fontproperties={'size':'xx-small',
-                                                 'weight':'bold'}, 
+                                                 'weight':'bold'},
                            bbox_to_anchor=(1,0), loc="lower left",
                            prop={'size': 'xx-small'})
     else:
@@ -1219,7 +1222,7 @@ def eewmap(data,
     m+=' The blind zone can be compared to MMI contours considering the authoritative location (blue circles).'
     m+=' The smallest MMI contour is also represented with the first EEW solution (dash blue circle).'
     #print(m)
-    
+
     plot_focmech(data['event'],lineauthors,fig.bmap.ax)
-    
+
     return fig
