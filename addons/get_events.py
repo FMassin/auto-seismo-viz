@@ -237,6 +237,11 @@ def get_events_updatedafter(self,
 
     ## The catalog in last N days
     catalog_last_ndays = Catalog()
+    if 'eventid' in kwargs:
+        for badkey in ['starttime','endtime','limit']:
+            if  badkey in  kwargs:
+                kwargs.pop(badkey)
+    print(kwargs)
     try:
         catalog_last_ndays += refclient.get_events(**kwargs)
     except FDSNNoDataException:
@@ -272,19 +277,29 @@ def get_events_updatedafter(self,
                 
                 except FDSNNoDataException:
                     try:
-                        eventid = 'us'+eventid
-                        print('Trying USGS style with no origin or magnitude specification, and eventid=', eventid)
-                        allsolutions_noarrivals = refclient.get_events(eventid=eventid,
-                                                                    #includeallmagnitudes=True,
-                                                                    #includeallorigins=True,
-                                                                    #includearrivals=False
-                                                                    )
-                        prefsolution_witharrivals = allsolutions_noarrivals
-                        usgs=True
+                        allsolutions_noarrivals = refclient.get_events(eventid=eventid.split("/")[-1],
+                                                                    includeallmagnitudes=True,
+                                                                    includeallorigins=True,
+                                                                    includearrivals=False)
+                        prefsolution_witharrivals = refclient.get_events(eventid=eventid.split("/")[-1],
+                                                                        includeallmagnitudes=False,
+                                                                        includeallorigins=False,
+                                                                        includearrivals=True)
                     except FDSNNoDataException:
-                        if debug:
-                            print('No event found with eventid=', eventid, 'or', eventid[2:])
-                        break
+                        try:
+                            eventid = 'us'+eventid
+                            print('Trying USGS style with no origin or magnitude specification, and eventid=', eventid)
+                            allsolutions_noarrivals = refclient.get_events(eventid=eventid,
+                                                                        #includeallmagnitudes=True,
+                                                                        #includeallorigins=True,
+                                                                        #includearrivals=False
+                                                                        )
+                            prefsolution_witharrivals = allsolutions_noarrivals
+                            usgs=True
+                        except FDSNNoDataException:
+                            if debug:
+                                print('No event found with eventid=', eventid, 'or', eventid[2:])
+                            break
 
                 except:
                     if debug:
