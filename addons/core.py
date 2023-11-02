@@ -29,10 +29,10 @@ def ipe_allen2012_hyp(r,
     for i,ri in enumerate(r):
         try:
             for j,rj in enumerate(ri):
-                if rj<50:
+                if rj>50:
                     I[i,j] = a + b*m[i,j] + c*numpy.log(numpy.sqrt(r[i,j]**2 + rm[i,j]**2))+d*numpy.log(r[i,j]/50)+s
         except:
-            if ri<50:
+            if ri>50:
                 I[i] = a + b*m[i] + c*numpy.log(numpy.sqrt(r[i]**2 + rm[i]**2))+d*numpy.log(r[i]/50)+s
     return I
 
@@ -81,14 +81,13 @@ def scfinderauthor(origin, lineauthors=None):
     print("==============\ngeocode")
     print(geocode)
 
-    if geocode is not None and geocode['country'] in ['Schweiz/Suisse/Svizzera/Svizra','Switzerland','France']:
-        print(geocode)
-        if ( geocode['region'] in ['Valais/Wallis', 'Valais'] or
-            geocode['county'] in ['Sierre','Haute-Savoie' ] or
-            'Glarus' in geocode['address']):
-            lineauthors += ['scfdalpine']
-        else:
+    if ( geocode is not None and
+         geocode['country'] in ['Schweiz/Suisse/Svizzera/Svizra','Switzerland','France','Osterreich']
+         ):
+        if (0.39 * origin.longitude + 44)  < origin.latitude :
             lineauthors += ['scfdforela']
+        else:
+            lineauthors += ['scfdalpine']
     else:
         bm = Basemap()
         if origin.depth / 1000 > 70:
@@ -429,7 +428,8 @@ def nicemap(catalog=Catalog(),
             service='Ocean/World_Ocean_Base',
             shapefile='/Users/fred/Documents/Data/misc/gem-global-active-faults/shapefile/gem_active_faults_harmonized',
             shapecolors='slip_type',
-            default_encoding='iso-8859-15'):
+            default_encoding='iso-8859-15',
+            **kwargs):
 
     if mapbounds:
         lons = mapbounds[0]
@@ -909,7 +909,14 @@ def plot_focmech(event,lineauthors,ax,color='C1'):
         bball = beach(fm,**opts)
     axins.add_collection(bball)
 
+    axins.set(xlim=(-50, 50), ylim=(-50, 50))
+    #return
+
     opts['edgecolor']=color
+    opts['facecolor']='none'#[,0,0,0]
+    opts['bgcolor']='none'#[255,255,255,0]
+    opts['alpha']=0
+    #opts['nofill']=True
     withStroke=matplotlib.patheffects.withStroke
     magnitudes = []
     for m in event.magnitudes:
@@ -935,23 +942,39 @@ def plot_focmech(event,lineauthors,ax,color='C1'):
                 alpha = (delta - min(creation_delays)) / (max(creation_delays) - min(creation_delays))
                 #print(event.preferred_origin().time, m.creation_info.creation_time, event.magnitudes[0].creation_info.creation_time)
                 #print(delta, alpha, 1-alpha**.15)
-                opts['alpha'] = 1-alpha**.2
+                #opts['alpha'] = 1-alpha**.2
                 opts['linewidth'] = (1-alpha**.2)
 
                 bball = beach(f,**opts)
                 axins.add_collection(bball)
+
                 x = 35*numpy.cos(numpy.deg2rad(f[0]))
                 y = -35*numpy.sin(numpy.deg2rad(f[0]))
+                x2 = 35*numpy.cos(numpy.deg2rad(f[0]+180))
+                y2 = -35*numpy.sin(numpy.deg2rad(f[0]+180))
+
+                path_effects=[withStroke(linewidth = 4,
+                                         alpha = opts['alpha'],
+                                         foreground = color),
+                              withStroke(linewidth = 2,
+                                         foreground = "w")]
+
+                axins.plot([x*.8,x2*.8],
+                           [y*.8,y2*.8],
+                           alpha = 1-alpha**.2,
+                           linewidth = (1-alpha**.2),
+                           color = color,
+                           zorder = -delta + 999,
+                           path_effects = path_effects)
+
                 axins.text(x, y,'%d s'%delta,
                            fontsize='x-small',
+                           alpha = 1-alpha**.2,
                            zorder = -delta,
                            horizontalalignment='center',
                            verticalalignment='center',
-                           path_effects=[withStroke(linewidth=4,
-                                                    alpha = opts['alpha'],
-                                                    foreground=color),
-                                          withStroke(linewidth=2,
-                                                     foreground="w")])
+                           path_effects=path_effects
+                           )
 
     axins.set(xlim=(-50, 50), ylim=(-50, 50))
 
@@ -1095,7 +1118,7 @@ def eewmap(data,
     triald=numpy.arange(((radius*5/1000)**2*2)**.5/2)
     mmi = ipe_allen2012_hyp((triald**2+(origin.depth/1000)**2)**.5,
                                                 triald*0+magnitude.mag,
-                                                s=-1)
+                                                )
     #print(mmi,triald)
     f = scipy.interpolate.interp1d(mmi,triald)
     minmaxmmi=[max([1,int(min(mmi))+1]), min([9,1+int(max(mmi))])]

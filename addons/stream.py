@@ -96,10 +96,13 @@ def get_velmodel_correction(event,
         if epr>lim:
             #print(a)
             continue
-        arrivals = model.get_travel_times(depth,
+        try:
+            arrivals = model.get_travel_times(depth,
                                           distance_in_degree=epr/111,
                                           phase_list=['tt'+phase],
                                           receiver_depth_in_km=0)
+        except:
+            continue
         modtt=numpy.nanmin([numpy.nan]+[a.time for a in arrivals])
         if phase in modelresidual:
             modelresidual[phase]+=[obstt - modtt]
@@ -125,7 +128,7 @@ def ploteqdata(self, #eqdata[output].select(channel='*b')
                cmap='nipy_spectral',#tab20b'
                mtypes={'MVS':'C2','Mfd':'C1'},
                ax=None,
-               lim=150,
+               lim=160,
                combine='both',
                nopgalabel=False,
                nostationlabel=False,

@@ -13,7 +13,11 @@ def legend_title(event,mtypes,
                  aliases = {'GUA':'INSIVUMEH','us':'USGS','INETERFINDER':'INETER', 'MARNFINDER':'MARN'},
                  split=True):
     #print(event.preferred_origin().creation_info)
-    leg_title = {event.preferred_origin().creation_info.agency_id:[mtype(event.preferred_magnitude().magnitude_type)]}
+    if event.preferred_magnitude() is not None:
+        magnitude_type = event.preferred_magnitude().magnitude_type
+    else:
+        magnitude_type = 'None'#event.magnitudes[-1].magnitude_type
+    leg_title = {event.preferred_origin().creation_info.agency_id:[mtype(magnitude_type)]}
     for m in event.magnitudes:
         if m.magnitude_type in mtypes:
             #print(m.creation_info)
@@ -846,7 +850,7 @@ def performance_timelines(event,
                     #############################################
                     memlogPGcm=-99999
                     if stations is None:
-                        eewdistance=eewdelay*vs-d/1000
+                        eewdistance=(eewdelay-5)*vs-d/1000
                         memlogPGcm=9
                     else:
                         for network in stations:
@@ -858,20 +862,20 @@ def performance_timelines(event,
 
                                 distance = ((distance**2+(-station.elevation-o.depth)**2)**.5)/1000.
                                             
-                                logPGcm = addons.core.ipe_allen2012_hyp(numpy.asarray([max([.1,abs(eewdistance)])]),
+                                logPGcm = addons.core.ipe_allen2012_hyp(numpy.asarray([max([.1,eewdistance])]),
                                                                         numpy.asarray([tmp.mag]),
-                                                                        s=-1)[0]
+                                                                        )[0]
                                           
-                                if distance >= eewdelay*vs and logPGcm>memlogPGcm:
+                                if distance >= (eewdelay-5)*vs and logPGcm>memlogPGcm:
                                     memlogPGcm=logPGcm
                                     eewdistance=distance
 
                     if memlogPGcm>-99999:
                         axesdata[3]['x'][key].append(eewdelay)
                         axesdata[3]['xeew'][key].append(eewdelay)
-                        logPGcm = addons.core.ipe_allen2012_hyp(numpy.asarray([max([.1,abs(eewdistance)])]),
+                        logPGcm = addons.core.ipe_allen2012_hyp(numpy.asarray([max([.1,eewdistance])]),
                                                                 numpy.asarray([tmp.mag]),
-                                                                s=-1)
+                                                                )
                         if numpy.isnan(logPGcm[0]):
                             print('WARNING: NaN PGA at %g km'%(eewdistance))
 
@@ -889,14 +893,14 @@ def performance_timelines(event,
                         if mag_errors_uncertainty<2.:
                             logPGcm = addons.core.ipe_allen2012_hyp(numpy.asarray([max([.1,abs(eewdistance-de)])]),
                                                                             numpy.asarray([tmp.mag+mag_errors_uncertainty]),
-                                                                            s=-1)
+                                                                            )
                             if numpy.isnan(logPGcm[0]):
                                 print('WARNING: Nan PGA for %g = %g - %g'%(eewdistance-de,eewdistance,de))
                             axesdata[3]['yep'][key].append(logPGcm[0] - PG)
                             
                             logPGcm = addons.core.ipe_allen2012_hyp(numpy.asarray([max([.1,abs(eewdistance+de)])]),
                                                                     numpy.asarray([tmp.mag-mag_errors_uncertainty]),
-                                                                    s=-1)
+                                                                    )
                             if numpy.isnan(logPGcm[0]):
                                 print('WARNING: Nan PGA %g = %g + %g'%(eewdistance-de,eewdistance,de))
                             axesdata[3]['yem'][key].append(PG - logPGcm[0])

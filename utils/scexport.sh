@@ -32,11 +32,17 @@ echo "      end:" \$END
 
 mkdir -p $STORE 
 
-# curl "http://\$FDSNWS/fdsnws/dataselect/1/query?starttime=\$BEG&endtime=\$END" |$PREF scmssort -v -E -u |$PREF $ENVALIAS --config.skipDataOlderThan=999999999  -u test --dump --debug -I - > $STORE/${EVENTID//\//_}.mseed 2>$STORE/${EVENTID//\//_}.env.log || tail $STORE/${EVENTID//\//_}.env.log
+curl "http://\$FDSNWS/fdsnws/dataselect/1/query?starttime=\$BEG&endtime=\$END" > $STORE/${EVENTID//\//_}.raw.mseed
+
+$PREF scmssort -v -E -u  $STORE/${EVENTID//\//_}.raw.mseed |$PREF $ENVALIAS --config.skipDataOlderThan=999999999  -u test --dump --debug -I - > $STORE/${EVENTID//\//_}.mseed 2>$STORE/${EVENTID//\//_}.env.log || tail $STORE/${EVENTID//\//_}.env.log
+
 $PREF scxmldump -f -E ${EVENTID} -d \$DBLOC -PAMFm > $STORE/${EVENTID//\//_}.xml 2>$STORE/${EVENTID//\//_}.dumpev.log || tail $STORE/${EVENTID//\//_}.dumpev.log
-# $PREF scxmldump -If -d \$DBINV > $STORE/${EVENTID//\//_}.inv.xml 2>$STORE/${EVENTID//\//_}.dumpinv.log || tail $STORE/${EVENTID//\//_}.dumpinv.log
-# curl "http://\$FDSNWS/fdsnws/station/1/query?starttime=\$BEG&endtime=\$END&level=channel&format=stationxml" > $STORE/${EVENTID//\//_}.inv.xml 2>$STORE/${EVENTID//\//_}.dumpinv.log || tail $STORE/${EVENTID//\//_}.dumpinv.log 
+
+#$PREF scxmldump -If -d \$DBINV > $STORE/${EVENTID//\//_}.inv.xml 2>$STORE/${EVENTID//\//_}.dumpinv.log || tail $STORE/${EVENTID//\//_}.dumpinv.log
+
+curl "http://\$FDSNWS/fdsnws/station/1/query?starttime=\$BEG&endtime=\$END&level=channel&format=fdsnxml" > $STORE/${EVENTID//\//_}.inv.xml 2>$STORE/${EVENTID//\//_}.dumpinv.log || tail $STORE/${EVENTID//\//_}.dumpinv.log 
+
 exit
 EOI
 
-scp $1:$STORE/${EVENTID//\//_}"*xml" ./
+scp $1:$STORE/${EVENTID//\//_}"*" ./exports/

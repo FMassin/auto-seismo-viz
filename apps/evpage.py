@@ -2,13 +2,51 @@
 from sys import argv
 from string import Template
 from glob import glob
+from numpy import argsort
+import xml.etree.ElementTree as ET
+from  shutil import copyfile
+from os import makedirs, system
+from os.path import isdir
+
+def qml2desc(file):
+    
+    # Passing the path of the
+    # xml document to enable the
+    # parsing process
+    tree = ET.parse(file)
+    
+    # getting the parent tag of
+    # the xml document
+    root = tree.getroot()
+    
+    for child in root[0][0]:
+        if 'preferredOriginID' in child.tag :
+            prefOrId = child.text
+        if 'preferredMagnitudeID' in child.tag :
+            prefMagId = child.text
+
+
+    for child in root[0][0]:
+        if 'origin' in  child.tag and child.attrib['publicID'] == prefOrId:
+            for granchild in child:
+                if 'time' in  granchild.tag :
+                    time = granchild[0].text
+        
+        if 'magnitude' in  child.tag and child.attrib['publicID'] == prefMagId:
+            for granchild in child:
+                if 'mag' in  granchild.tag :
+                    mag = granchild[0].text
+
+    return mag, time
 
 ids = list(set([f.split('/')[-1].split('_')[0] for f in glob("%s/*_map.png"%argv[-1])]))
 
 
 pagetemplate = '''
-Event $evtid
-============
+M${mag} event on ${date} 
+======================================================================
+
+At ${time} UTC (``$evtid``).
 
 ${anim}
 
@@ -56,14 +94,15 @@ t = Template(pagetemplate)
 
 
 animtemplate = Template('''
-Summary Animation
+Summary animation
 -----------------
 
 .. raw:: html
 
-    <video controls width="100%s" src="../../../%s/${evtid}_anim.mp4"></video>
-
-'''%('%',argv[-1]))
+    <video controls width="100%s" src="../_images/${evtid}_anim.mp4"></video>
+    <center><p><small>Data and event parameters animation for event ${evtid}. Intensity and acceleration do not match accurately.</small></p></center>
+                        
+'''%('%'))
 
 stationhead = '''
 Stations
@@ -79,16 +118,31 @@ stationtemplate = Template('''
     Seismograms and spectrograms for ${out} data at station ${station} for event ${evtid}.
 ''')
 
+pages = []
+magnitudes = []
+copyfiles = []
 for id in ids:
     if argv[-2] in ids and argv[-2] != id:
         continue
     stations = list(set([f.split('/')[-1].split('.raw')[0] for f in glob("%s/%s/*.raw.png"%(argv[-1],id))]))
+    
+    mag, time = qml2desc( '%s/%s.quakeml' % ( argv[-1], id ))
+
+    magnitudes += [float(mag)]
+    pages += ['events/%s.rst'%id]
 
     with open('events/%s.rst'%id, 'w', encoding='utf-8') as file:
         anim = ''
         if glob('%s/%s_anim.mp4'%(argv[-1],id)):
             anim += animtemplate.substitute({ 'evtid': id,
                                    'evtstore': argv[-1]})
+            
+            if not isdir("_build/html/_images/"):
+                makedirs('_build/html/_images/')
+            copyfiles += [[ "%s/%s_anim.mp4" % ( argv[-1], id ), 
+                           "_build/html/_images/%s_anim.mp4" % ( id ) 
+                           ]]
+            
         stationsraw = ''
         subst = {'evtid': id,
                  'evtstore':argv[-1],
@@ -101,9 +155,37 @@ for id in ids:
             stationsraw =  stationhead+stationsraw
 
         eventpage = t.substitute({ 'evtid': id,
+                                   'time': time[11:19],  
+                                   'date': time[:10], 
+                                   'mag': int(float(mag)),                 
                                    'evtstore': argv[-1],
                                    'stations': stationsraw,
                                    'anim': anim
                                    })
 
         file.writelines(eventpage)
+        
+        
+
+eventspage = '''
+
+.. toctree::
+   :maxdepth: 3
+   :caption: Events:
+   
+'''
+for i in argsort(magnitudes)[::-1]:
+    eventspage += '''
+   '''+pages[i]
+    
+eventspage += '''
+   '''
+print(eventspage)
+with open('events.rst', 'w', encoding='utf-8') as file:
+    file.writelines(eventspage)
+
+system('make clean html')
+
+for args in copyfiles:
+    print('copy',*args,'..')
+    copyfile(*args)

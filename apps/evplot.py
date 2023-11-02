@@ -9,7 +9,7 @@ path_effects=[withStroke(linewidth=2,foreground="w")]
 
 def event_plots(catalog,
                 eventstreams,
-                eventinventories, 
+                eventinventories,
                 **args):
 
     saveopt = {'dpi':512,
@@ -18,45 +18,44 @@ def event_plots(catalog,
     for event, streams, inventory in zip(catalog,eventstreams,eventinventories):
 
         shorteventid = str(event.resource_id).split('/')[-1]
-            
 
-        ## Plot data
-        fig = ploteqdata(streams['acc'].select(channel='*b')+streams['acc'].select(channel='*X'),event,inventory,lim=250)
-        fig.tight_layout()
-        for ax in fig.axes:
-            for t in ax.findobj(Text):
-                if not t.get_path_effects():
-                    t.set(path_effects=path_effects) 
-        fig.savefig('data/%s_data.png'%shorteventid,bbox_inches=None,**saveopt)
-        print('data/%s_data.png'%shorteventid)
-        
         ## Map results
         fig = eewmap({'event':event,
                     'inventory':inventory},
                     reference=False,
                     stationgroups={})
-        
+
         for ax in fig.axes:
             for t in ax.findobj(Text):
                 if not t.get_path_effects():
-                    t.set(path_effects=path_effects) 
+                    t.set(path_effects=path_effects)
         fig.savefig('data/%s_map.png'%shorteventid,bbox_inches='tight',**saveopt)
         print('data/%s_map.png'%shorteventid)
 
+        ## Plot data
+        fig = ploteqdata(streams['acc'].select(channel='*b')+streams['acc'].select(channel='*X'),event,inventory,lim=160)
+        fig.tight_layout()
+        for ax in fig.axes:
+            for t in ax.findobj(Text):
+                if not t.get_path_effects():
+                    t.set(path_effects=path_effects)
+        fig.savefig('data/%s_data.png'%shorteventid,bbox_inches=None,**saveopt)
+        print('data/%s_data.png'%shorteventid)
 
         ## Plot results timeline
         fig = performance_timelines(event)
         for ax in fig.axes:
             for t in ax.findobj(Text):
                 if not t.get_path_effects():
-                    t.set(path_effects=path_effects) 
+                    t.set(path_effects=path_effects)
         fig.savefig('data/%s_timeline.png'%shorteventid,bbox_inches='tight',**saveopt)
+        #fig.savefig('data/%s_timeline.pdf'%shorteventid,bbox_inches='tight',**saveopt)
         print('data/%s_timeline.png'%shorteventid)
 
 def main(**args):
 
         # Getting data
         catalog,eventstreams,eventinventories = event_data(**args)
-        
+
         # Creating plots
         event_plots(catalog,eventstreams,eventinventories,**args)

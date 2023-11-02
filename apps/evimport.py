@@ -1,11 +1,13 @@
 #!/usr/bin/env python
 from addons.get_waveforms import remove_sensitivity,attach_distance,clean_inventorystream
+from addons.get_events import match_events
 from obspy import read, read_inventory, read_events
 import os 
 
 def main(catalog=None,
          inventory=None,
          stream=None,
+         refcatalog=None,
          debug=True,
          channel='SN*,SH*,EN*,EH*,HN*,HH*,HG*',
          correction_method = remove_sensitivity,
@@ -13,10 +15,30 @@ def main(catalog=None,
     
     eventstreams=[]
     eventinventories=[]
-    catalog = read_events(catalog)
+
+    if refcatalog is None:
+        catalog = read_events(catalog)
+    else:
+        ## Get additional solution form another server if any provided
+        toadd = read_events(catalog)
+        catalog = read_events(refcatalog)
+        if debug:
+            print('Adding more event info...')#with',client)
+        catalog = match_events(catalog,
+                                toadd=toadd,
+                                lastmagpref=False,
+                                includeallmagnitudes=True,
+                                includeallorigins=True,
+                                includearrivals=False,
+                                includecomments=True,
+                                filename='/tmp/xml',
+                                format='sc3ml',
+                                v=debug,
+                                x=False)[0]
+        
     inventory = read_inventory(inventory)#.select(channel=channel)
-    stream = read(stream)#.select(channel=channel)
-    
+    stream = read(stream)#.select(channel=channel)                    
+
     for event in catalog:
         origin = event.preferred_origin()
 
@@ -76,6 +98,11 @@ def main(catalog=None,
             os.makedirs("data")
     
         ## Save event data
+        if event.preferred_origin() is None:
+            event.preferred_origin_id = event.origins[-1].resourceid
+        if event.preferred_magnitude() is None:
+            event.preferred_magnitude_id = event.magnitudes[-1].resourceid
+
         event.write('data/%s.quakeml'%shorteventid,
                     format='quakeml')
         print('data/%s.quakeml'%shorteventid)

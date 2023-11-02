@@ -3,9 +3,11 @@ from sys import argv
 from re import sub
 import os
 
+seismopath = os.path.dirname(os.path.realpath(argv[0]))+'/'
+
 if __name__ == '__main__':
 
-    if os.path.exists('apps/%s.py'%argv[1]):
+    if os.path.exists('%sapps/%s.py'%(seismopath,argv[1])):
 
         args={ arg.split('=')[0]:arg.split('=')[1] for arg in argv[2:] if "=" in arg}
 

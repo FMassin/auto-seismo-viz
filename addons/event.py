@@ -86,7 +86,8 @@ def map_event(event,
                           xpixels=xpixels,
                           resolution=resolution,
                           figsize=figsize,
-                          **kwargs)
+                          **kwargs
+                          )
     fig.tight_layout(rect=(0, 0, 1, .97))
     fig.event_creation_info = event.creation_info
     fig.creation_time = obspy.UTCDateTime.now()
@@ -403,7 +404,7 @@ def add_magnitudes(event,
         
         minputs=[numpy.array([origin.depth/1000]),
                  numpy.array([m.mag])]
-        mmi=list(ipe_allen2012_hyp(*minputs,s=-1))
+        mmi=list(ipe_allen2012_hyp(*minputs))
         distances=[abs(origin.depth)/1000]
         for tr in stream.slice(endtime=m.creation_info.creation_time):
             minputs=[origin.longitude,origin.latitude,
@@ -415,7 +416,7 @@ def add_magnitudes(event,
 
         minputs=[numpy.linspace(min(distances),max(distances+list(axmmi.get_xlim())),16),
                  numpy.array([m.mag for n in range(16)])]
-        minputs[1]= ipe_allen2012_hyp(*minputs,s=-1)
+        minputs[1]= ipe_allen2012_hyp(*minputs)
         minputs[0]= station_distances
         mopts={'color':types[m.magnitude_type],
                #'linestyle':'dashed',
@@ -612,7 +613,7 @@ def add_mmi(stream,event,ax):
     
     inputs=[numpy.array([pref_origin.depth/1000]),
             numpy.array([pref_magnitude.mag])]
-    mmi=list(ipe_allen2012_hyp(*inputs,s=-1))
+    mmi=list(ipe_allen2012_hyp(*inputs))
     distances=[pref_origin.depth/1000]
     lon=[pref_origin.longitude]
     lat=[pref_origin.latitude]
@@ -627,7 +628,7 @@ def add_mmi(stream,event,ax):
 
     modMMI=list(ipe_allen2012_hyp(numpy.array(distances[1:]),
                                                                 numpy.array([pref_magnitude.mag for n in distances[1:]]),
-                                                                s=-1))
+                                                                ))
     
     #http://shakemap.rm.ingv.it/shake/17769831/download/intensity.jpg
     #http://www.seismo.ethz.ch/static/shakemap/shake/KP201211290852/intensity.html
@@ -643,7 +644,7 @@ def add_mmi(stream,event,ax):
 
     inputs=[numpy.linspace(min(distances),max(distances+list(ax.get_xlim())),16),
             numpy.array([pref_magnitude.mag for n in range(16)])]
-    inputs[1] = ipe_allen2012_hyp(*inputs,s=-1)
+    inputs[1] = ipe_allen2012_hyp(*inputs)
     opts={'color':'C0',
           'path_effects':path_effects}
     fopts={'color':'C0',

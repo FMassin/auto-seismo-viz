@@ -15,7 +15,8 @@ def event_plots(catalog,
         anim = animate(event,
                     streams['acc'],
                     streams['disp'],
-                    inventory)
+                    inventory,
+                    **args)
         anim.save('data/%s_anim.mp4'%shorteventid)#,dpi=300)
         print('data/%s_anim.mp4'%shorteventid)
 
