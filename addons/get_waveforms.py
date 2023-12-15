@@ -74,7 +74,10 @@ def event2stations_bulk(self,
         s=(nsc[0].code, nsc[0][0].code)       
         epr = locations2degrees_origin2channel(origin,nsc[0][0][0])
         receiver_depth_in_km=nsc[0][0][0].elevation/-1000
-        arrivals = model.get_travel_times(origin.depth/1000,
+        origin_depth = origin.depth
+        if origin_depth<0:
+            origin_depth=1
+        arrivals = model.get_travel_times(origin_depth/1000,
                                             distance_in_degree=epr,
                                             phase_list=['tts'],
                                             #receiver_depth_in_km=receiver_depth_in_km
@@ -96,14 +99,20 @@ def event2stations_bulk(self,
         
         epr = locations2degrees_origin2channel(origin,nsc[0][0][0])
         receiver_depth_in_km=nsc[0][0][0].elevation/-1000
-        arrivals = model.get_travel_times(origin.depth/1000,
+        origin_depth = origin.depth
+        if origin_depth<0:
+            origin_depth=1
+        arrivals = model.get_travel_times(origin_depth/1000,
                                             distance_in_degree=epr,
                                             phase_list=['ttp'],
                                             #receiver_depth_in_km=receiver_depth_in_km
                                             )
         p = numpy.nanmin([ a.time for a in arrivals ])
 
-        arrivals = model.get_travel_times(origin.depth/1000,
+        origin_depth = origin.depth
+        if origin_depth<0:
+            origin_depth=1
+        arrivals = model.get_travel_times(origin_depth/1000,
                                             distance_in_degree=epr,
                                             phase_list=['tts'],
                                             #receiver_depth_in_km=receiver_depth_in_km
@@ -131,6 +140,8 @@ def inventory2waveforms_bulk(self,
                           model = TauPyModel(),
                           debug=False,
                           location='*', 
+                          padafter=0,
+                          padbefore=0,
                           channel='SN*,SH*,EN*,EH*,HN*,HH*,HG*'):
     bulk = []
     done=[]
@@ -146,14 +157,21 @@ def inventory2waveforms_bulk(self,
         
         epr = locations2degrees_origin2channel(origin,nsc[0][0][0])
         receiver_depth_in_km=nsc[0][0][0].elevation/-1000
-        arrivals = model.get_travel_times(origin.depth/1000,
+
+        origin_depth = origin.depth
+        if origin_depth<0:
+            origin_depth=1
+        arrivals = model.get_travel_times(origin_depth/1000,
                                             distance_in_degree=epr,
                                             phase_list=['ttp'],
                                             #receiver_depth_in_km=receiver_depth_in_km
                                             )
         p = numpy.nanmin([ a.time for a in arrivals ])
 
-        arrivals = model.get_travel_times(origin.depth/1000,
+        origin_depth = origin.depth
+        if origin_depth<0:
+            origin_depth=1
+        arrivals = model.get_travel_times(origin_depth/1000,
                                             distance_in_degree=epr,
                                             phase_list=['tts'],
                                             #receiver_depth_in_km=receiver_depth_in_km
@@ -163,8 +181,8 @@ def inventory2waveforms_bulk(self,
                   nsc[0][0].code, 
                   location, 
                   channel, 
-                  origin.time+p/2, 
-                  origin.time+s+(s-p))]
+                  origin.time+p/2-padbefore, 
+                  origin.time+s+(s-p)+padafter)]
         if debug:
             print("%s.%s.%s.%s [%s, %s]"%bulk[-1],'Ot+%.3g deg'%epr)
     return bulk
@@ -367,6 +385,8 @@ def get_events_waveforms(self,
                          longestonly=None,
                          debug=True,
                          correction_method = remove_sensitivity,
+                         padafter=0,
+                         padbefore=0,
                          **kwargs):
     
     if inventory_client is None:
@@ -426,6 +446,8 @@ def get_events_waveforms(self,
         # Get data from ttp/2 to tts+tts-ttp
         bulk = inventory2waveforms_bulk(inventory,
                                         origin,
+                                        padafter=padafter,
+                                        padbefore=padbefore,
                                         **inv2bulkargs)
         stream = self.get_waveforms_bulk(bulk,**bulkargs)
 

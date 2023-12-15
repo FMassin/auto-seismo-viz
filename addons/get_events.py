@@ -255,8 +255,8 @@ def get_events_updatedafter(self,
     ## The catalog in last N days updated in last N seconds
     catalog_updated_last_nseconds = Catalog()
     for e in catalog_last_ndays:
-        for m in e.magnitudes:
-            if m.creation_info.creation_time > updated_after:
+        for m in e.origins:
+            if m.creation_info.creation_time > updated_after :
                 eventid=str(e.resource_id)
                 if not 'smi:' == eventid[:4]:
                     eventid = str(e.resource_id).split("?")[-1]

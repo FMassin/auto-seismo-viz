@@ -99,9 +99,15 @@ def main(catalog=None,
     
         ## Save event data
         if event.preferred_origin() is None:
-            event.preferred_origin_id = event.origins[-1].resourceid
+            try:
+                event.preferred_origin_id = event.origins[-1].resourceid
+            except:
+                print('NO PREF ORG!')
         if event.preferred_magnitude() is None:
-            event.preferred_magnitude_id = event.magnitudes[-1].resourceid
+            try:
+                event.preferred_magnitude_id = event.magnitudes[-1].resourceid
+            except:
+                print('NO PREF MAG!')
 
         event.write('data/%s.quakeml'%shorteventid,
                     format='quakeml')

@@ -42,6 +42,8 @@ def event_data(catalog_uri='USGS',
          timeout=120*4, 
          channel='SN*,SH*,EN*,EH*,HN*,HH*,HG*',
          eida_token=None,
+         padafter=0,
+         padbefore=0,
          **get_events_wargs):
 
     if files is not None :
@@ -91,7 +93,11 @@ def event_data(catalog_uri='USGS',
     catalog_clients=[]
     for url in catalog_uri:
         catalog_clients.append(Client(base_url=url,**clientargs))
-
+        
+    if padafter is not None :
+        padafter = float(padafter)
+    if padbefore is not None :
+        padbefore = float(padbefore)
     if ndays is not None :
         ndays = float(ndays)
     if nseconds is not None :
@@ -113,7 +119,10 @@ def event_data(catalog_uri='USGS',
     eventstreams,eventinventories = get_events_waveforms(stream_client,
                                                          catalog,
                                                          channel=channel,
-                                                         inventory_client=inventory_client)
+                                                         inventory_client=inventory_client,
+                                                         padafter=padafter,
+                                                         padbefore=padbefore
+                                                         )
     
     for event, streams, inventory in zip(catalog,eventstreams,eventinventories):
         
