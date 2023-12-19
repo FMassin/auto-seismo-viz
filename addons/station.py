@@ -1,21 +1,29 @@
 #!/usr/bin/env python
 
-from matplotlib.pyplot import figure,colorbar
+from matplotlib.pyplot import figure,colorbar,rcParams
 from matplotlib.gridspec import  GridSpec, GridSpecFromSubplotSpec
-from matplotlib.ticker import AutoMinorLocator, AutoLocator, FormatStrFormatter
+from matplotlib.ticker import AutoMinorLocator, AutoLocator, EngFormatter, LogLocator
 from matplotlib import patheffects , colors
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 import matplotlib.dates as mdates
+from matplotlib.markers import MarkerStyle, CapStyle
 
 
-from numpy import meshgrid,logspace,log10,abs,median, percentile, nan
+from numpy import meshgrid,logspace,log10,abs,median, percentile, nan,linspace,argmin
 from numpy.ma import masked_array
+
+from scipy.interpolate import interp2d
 
 from obspy.imaging.cm import pqlx
 from obspy.signal.tf_misfit import cwt
 
+from fnmatch import fnmatch
+from cartopy.crs import  Geodetic
+
+
 from addons.core import eewmap
 from obspy.core.event.catalog import Catalog
+from addons.bmap import bmap
 
 
 golden = (1 + 5 **0.5) / 2
@@ -39,7 +47,7 @@ def myaxstyle(ax):
     ax.grid(visible=True, which='major', color='gray', linestyle='dashdot', zorder=-999)
     ax.grid(visible=True, which='minor', color='beige',  ls='-', zorder=-9999) 
 
-def dataaxes(fig, nsubplots, gs, labelright, labelleft):
+def dataaxes(fig, nsubplots, gs, labelright, labelleft,sharey=False):
     gs01 = GridSpecFromSubplotSpec(nsubplots, 1, 
                                    height_ratios=[1 for n in range(nsubplots)], 
                                    hspace=0, 
@@ -57,7 +65,8 @@ def dataaxes(fig, nsubplots, gs, labelright, labelleft):
 
     for ax in axes[1:]:
         ax.sharex(axes[0])
-        ax.sharey(axes[0])
+        if sharey:
+            ax.sharey(axes[0])
 
     return axes
 
@@ -72,7 +81,7 @@ def stationdataaxes(stationwf,nsubplots):
                     which='both')
     myaxstyle(ax_map)
 
-    axes_spec = dataaxes(fig, nsubplots, gs0[1], labelright=True, labelleft=False)
+    axes_spec = dataaxes(fig, nsubplots, gs0[1], labelright=True, labelleft=False, sharey=True)
     axes_data = dataaxes(fig, nsubplots, gs00[0], labelright=False, labelleft=True)
     axes_data[-1].tick_params(labelbottom=False)
     
@@ -80,52 +89,97 @@ def stationdataaxes(stationwf,nsubplots):
     
 
 
-def scalogram(tr,ax):
+def scalogram(trace,
+              ax,
+              output,
+              nfreqs=32,
+              ntimes=512*2
+              ):
+    
+    tr = trace.copy()
+    
     npts = tr.stats.npts
     dt = tr.stats.delta
     t = tr.times("matplotlib") #linspace(0, dt * npts, npts)
     f_min = max([0.5, 1/(npts*dt/8)])
     f_max = min([50, 1/dt/4])
     
-    s = abs(cwt(tr.data-median(tr.data), dt, 8, f_min, f_max))
+    #tr.detrend('polynomial',order=4)
+    tr.detrend()
+    tr.filter('highpass',freq=f_min)
+    
+    
+    s = abs(cwt(tr.data-median(tr.data), dt, 8, f_min, f_max, nfreqs))
 
     x, y = meshgrid(t,
                     logspace(log10(f_min), 
                              log10(f_max), 
                              s.shape[0]))
+
+    # scipy interp. cubic
+    f = interp2d(x[0,:], 
+                 y[:,0], 
+                 s, 
+                 kind='cubic'
+                 )
+    xnew = linspace(min(x[0,:]),max(x[0,:]),ntimes)
+    ynew = y[:,0]
+    Sn = f(xnew,ynew)
+    Xn, Yn = meshgrid(xnew, ynew)
+
+    nanthreshold = Sn.min()+(Sn.max()-Sn.min())/128
+    if not hasattr(ax.figure,'scalogram_lims'):
+        ax.figure.scalogram_lims = [nanthreshold,Sn.max()]
+    else:
+        ax.figure.scalogram_lims[0] = min([nanthreshold,ax.figure.scalogram_lims[0]])
+        ax.figure.scalogram_lims[1] = max([Sn.max(),ax.figure.scalogram_lims[1]])
+    #print(ax.figure.scalogram_lims, (Sn.min(),Sn.max()))
+
     
-    im = ax.pcolormesh(x, y, s, 
-                       cmap=pqlx, 
-                       norm=colors.Normalize(vmin=s.min()+(s.max()-s.min())/99, 
-                                             vmax=s.max()),
-                       alpha=0.8, 
+    Sn[Sn<nanthreshold] = nan
+
+    ax.scalogram = ax.pcolormesh(Xn, Yn, Sn, #x, y, s, #
+                       cmap=pqlx,
+                       norm=colors.LogNorm(*ax.figure.scalogram_lims),
+                       #alpha=0.7,
+                       rasterized=True, 
                        zorder=999)
 
-    ax.set_ylabel("Frequency [Hz]",position='right')
+    ax.set_ylabel("Frequency (Hz)",position='right')
     ax.set_yscale('log')
-    #ax.set_ylim(f_min, f_max)
+    ax.yaxis.set_major_formatter(EngFormatter(places=1, sep="\N{THIN SPACE}"))
 
-    cbaxes = inset_axes(ax, width="1%", height="90%", loc=2) 
-    cbaxes.set_yticklabels([ ], 
+    cbaxes = inset_axes(ax, 
+                        width="1%", 
+                        height="90%", 
+                        loc='center left') 
+    cbaxes.set_yticklabels([ ],
+                           fontsize='xx-small', 
                            path_effects=[patheffects.withStroke(linewidth=4, foreground="w")])  # vertically oriented colorbar
-    colorbar(im, cax=cbaxes, orientation='vertical')
+    colorbar(ax.scalogram, 
+             cax=cbaxes, 
+             orientation='vertical')
     cbaxes.tick_params(labelright=True, 
                 labelleft=False, 
                 labeltop=False, 
                 labelbottom=False,
                 which='both')
-    cbaxes.yaxis.set_minor_locator(AutoMinorLocator())
-
-    lax = ax.figure.add_axes(ax.get_position())
-    lax.patch.set_facecolor('None')
-    lax.tick_params(right=False, top=False,
-                    left=False, bottom=False,
-                    labelright=False, labeltop=False,
-                    labelleft=False, labelbottom=False,
-                    which='both')
-    for pos in ['right', 'top', 'bottom', 'left']:
-        lax.spines[pos].set_visible(False)
-    return lax
+    cbaxes.yaxis.set_minor_locator(LogLocator())
+    cbaxes.yaxis.set_major_formatter(EngFormatter(unit=output, 
+                                                  places=1, 
+                                                  sep="\N{THIN SPACE}"))
+    ax.scalogram_cbar = cbaxes
+    if False:
+        lax = ax.figure.add_axes(ax.get_position())
+        lax.patch.set_facecolor('None')
+        lax.tick_params(right=False, top=False,
+                        left=False, bottom=False,
+                        labelright=False, labeltop=False,
+                        labelleft=False, labelbottom=False,
+                        which='both')
+        for pos in ['right', 'top', 'bottom', 'left']:
+            lax.spines[pos].set_visible(False)
+    return ax
 
 
 def plotstationdata(streams,event,inventory, 
@@ -133,11 +187,12 @@ def plotstationdata(streams,event,inventory,
                     units={'acc':'m.s$^{-2}$',
                            'vel':'m/s',
                            'disp':'m',
-                           'raw':'counts'}):
+                           'raw':'counts'},
+                    max_num_station=4):
     stations=[]
     figs=[]
     for i,trace in enumerate(streams['raw']):
-        if len(stations)>6:
+        if len(stations)>=max_num_station:
             break
         station = '%s.%s'%(trace.stats.network,trace.stats.station)
         if station in stations:
@@ -161,8 +216,12 @@ def plotstationdata(streams,event,inventory,
         for iout,(output, wf) in enumerate(stationwf.items()):                 
             for itr,tr in enumerate(wf):
                 a=axes_spec[itr+iout*ncha]
-                lax = scalogram(tr,a,output)
-                lax.legend([],[],title='%s. %s'%(output.capitalize(),tr.id),labelspacing=-.2)
+                lax = scalogram(tr,a,units[output])
+                leg = lax.legend([],[],
+                           title='%s. %s'%(output.capitalize(),tr.id),
+                           labelspacing=-.2,
+                           )
+                leg.set_zorder(99999)
                 a.xaxis_date()
                 a.yaxis.set_label_position("right")
         
@@ -183,6 +242,7 @@ def plotstationdata(streams,event,inventory,
 def allstationsdataaxes(output,nsubplots):
 
     fig = figure(figsize=(10,10*golden))
+    fig.basename = '%s'%(output)
     
     gs0 = GridSpec(1, 2,   
                 width_ratios=(golden, 1), 
@@ -193,76 +253,204 @@ def allstationsdataaxes(output,nsubplots):
                                 hspace=0, 
                                 subplot_spec=gs0[1])
 
-    ax_map = fig.add_subplot(gs00[0])
-    ax_map.tick_params(direction="in", 
+    fig.ax_map = fig.add_subplot(gs00[0])
+    fig.ax_map.tick_params(direction="in", 
                        which='both')
-    myaxstyle(ax_map)
+    myaxstyle(fig.ax_map)
 
-    fig.axes_spec = dataaxes(fig, nsubplots, gs0[0], labelright=False, labelleft=True)
+    fig.axes_spec = dataaxes(fig, nsubplots, gs0[0], labelright=False, labelleft=True, sharey=True)
     fig.axes_data = dataaxes(fig, nsubplots, gs00[1], labelright=True, labelleft=False)
-    fig.basename = '%s'%(output)
+    
     return fig
 
+def plottimes(a,
+              vlinelabels,
+              vlinetimes,
+              alllines=False,
+              y=0
+              ):
+
+    for i,label in enumerate(vlinelabels):
+        for t in vlinetimes[i]:
+            if 'rg' in vlinelabels[i] or alllines:
+                a.axvline(t,
+                        label=label,
+                        color='C%d'%range(1,10)[vlinelabels.index(vlinelabels[i])],
+                        zorder=999999999,
+                        linewidth=1,
+                        path_effects=[patheffects.withStroke(linewidth=2, foreground="w")]
+                        )
+            else:
+                a.plot(t,y,
+                        marker=4,
+                        label=label,
+                        markeredgecolor='w',
+                        markeredgewidth=1,
+                        color='C%d'%range(1,10)[vlinelabels.index(vlinelabels[i])]
+                        )
+            label=None
+            
 def plotallstationsdata(streams,event,inventory, 
                         outputs=['vel'],#'raw',acc'], 
                         units={'acc':'m.s$^{-2}$',
                                 'vel':'m/s',
                                 'disp':'m',
                                 'raw':'counts'},
-                        max_num_station=16):
+                        max_num_station=4,#16
+                        sharec=True,
+                        ot=False,
+                        blacklist='*.STG2.*,*.STG8.*,*.STG5.*.HH?,*.STG11.*'
+                        ):
     
-    print(streams['raw'].__str__(extended=True))
+    blacklist = blacklist.split(',')
+    #print(streams['raw'].__str__(extended=True))
+    #print(event.preferred_origin())
 
-    stations = []
-    print(event.preferred_origin())
-    for i,trace in enumerate(streams['raw']):
-        station = '%s.%s'%(trace.stats.network,trace.stats.station)
-        ok=False
-        for a in event.preferred_origin().arrivals:
-            p=a.pick_id.get_referred_object()
-            if station == p.waveform_id.network_code+'.'+p.waveform_id.station_code:
-                ok=True
+    instruments = []
+    for output in streams:
+        if output not in outputs:
+            continue
+        for i,trace in enumerate(streams[output]):
+
+            mseedid = '%s.%s.%s.%s'%(trace.stats.network,trace.stats.station,trace.stats.location,trace.stats.channel)
+            if True in [fnmatch(mseedid, black) for black in blacklist ]:
+                print(mseedid,'is blacklisted')
+                continue
+            #print(trace)
+            instrument = '%s.%s.%s.%s'%(trace.stats.network,
+                                trace.stats.station,
+                                trace.stats.location,
+                                trace.stats.channel[:-1])
+            ok=False
+            for o in event.origins:
+                for a in o.arrivals:
+                    p=a.pick_id.get_referred_object()
+                    if '.'.join(instrument.split('.')[:-1]) == '%s.%s.%s'%(p.waveform_id.network_code,p.waveform_id.station_code,p.waveform_id.location_code):
+                        ok=True
+                        break
+            if not ok:
+                continue
+            if len(instruments)>=max_num_station:
                 break
-        if not ok:
-            continue
-        if len(stations)>=max_num_station:
-            break
-        if station in stations:
-            continue
-        stations += [station]
-    print(stations)
-    figs = [allstationsdataaxes(output,len(stations)) for output in outputs]
-    done = []
-    for station in stations:
+            if instrument in instruments:
+                continue
+            instruments += [instrument]
 
-        ax_index = stations.index(station)
+    #print(instruments)
+    figs = [allstationsdataaxes(output,len(instruments)) for output in outputs]
+    
+    for fig in figs:
+        la = [s.latitude for n in inventory for s in n]
+        lo = [s.longitude for n in inventory for s in n]
+        typ = ['HH']
+        fig.bmap = bmap(bounds=[min(lo), max(lo), min(la), max(la)],
+            right=True,
+            top=True,
+            ax=fig.ax_map,
+            zoom=15)
+        marker = MarkerStyle('2')
+        marker._capstyle = CapStyle.round
+        fig.bmap.plot(lo,la,
+                      linestyle='',
+                      marker = marker,
+                      markeredgewidth = 2,
+                      path_effects = [patheffects.withStroke(linewidth=4,foreground="w")],
+                      transform=Geodetic())
 
-        selectopt = {'network':station.split('.')[0],
-                     'station':station.split('.')[1],
-                     'channel':'*Z'}
+    #return figs
+    # Preferred origin
+    pref = event.origins[-1]
+    for o in event.origins:
+        pref = ['','pref.'][str(event.preferred_origin().resource_id) == str(o.resource_id)]
+    
+    # Earliest origin
+    first = argmin([o.creation_info.creation_time for o in event.origins])
+    first = event.origins[first]
+
+    vlinelabels = []
+    vlinetimes = []
+    for instrument in instruments:
+
+        ax_index = instruments.index(instrument)
+        wfid = instrument.split('.')
+        selectopt = {'network':wfid[0],
+                     'station':wfid[1],
+                     'location':wfid[2],
+                     'channel':'%sZ' % wfid[3]
+                     }
+        #print(selectopt)
         stationwf = {output:streams[output].select(**selectopt) for output in streams if output in outputs}
-        print(station)
-        print(stationwf)
+        print(instrument)
+        #print(stationwf[outputs[0]])
         ncha = len(stationwf[outputs[0]]) #  ALLOW MULTIPLE INSTRUMENTS SAME STATION? 
 
         for iout,(output, wf) in enumerate(stationwf.items()):    
             if iout+1>len(figs):
-                break          
+                break
+            
+            for i,label in enumerate(vlinelabels):
+                vlinetimes[i] = []
+                   
+            for o in event.origins:
+
+                if ot and len(pref):
+                    label = '$Org._{T.}^{pref.}$'
+                    vlinelabels += [label] 
+                    vlinetimes += [[o.time.matplotlib_date]] 
+                
+                if ot and len(first):
+                    label = '$Org._{CT.}^{early.}$'
+                    vlinelabels += [label] 
+                    vlinetimes += [[o.time.matplotlib_date]] 
+
+                for a in o.arrivals:
+                    p=a.pick_id.get_referred_object()
+                    if '.'.join(instrument.split('.')[:-1]) == '%s.%s.%s'%(p.waveform_id.network_code,p.waveform_id.station_code,p.waveform_id.location_code):
+                        label = '$Pick_{%s}^{%s.%s}$' % ( p.phase_hint, p.evaluation_mode[:4], pref ) 
+                        if label not in vlinelabels:
+                            vlinelabels += [label] 
+                            vlinetimes += [[]] 
+                        vlinetimes[vlinelabels.index(label)] += [p.time.matplotlib_date]
+
             for itr,tr in enumerate(wf): #  ALLOW MULTIPLE INSTRUMENTS SAME STATION? 
+                
                 a = figs[iout].axes_data[ax_index]
+
                 a.plot(tr.times("matplotlib"), tr.data)
+
+                plottimes(a,vlinelabels,vlinetimes,y=median(tr.data))
+
+                if ax_index == 0:
+                    leg = a.legend(bbox_to_anchor=(0.02, 1.05, .96, .102), 
+                                   loc='lower left',
+                                   ncol=3, 
+                                   fontsize='xx-small',
+                                   mode="expand", 
+                                   borderaxespad=0.)
+                    a.add_artist(leg)
+
                 a.set_xlim([min(tr.times("matplotlib")),max(tr.times("matplotlib"))])
-                a.set_ylabel('%s'%( units[output]))
+                
                 a.legend([],[],
                         title='%s. %s'%(output.capitalize(),tr.id),
-                        title_fontsize='x-small',
+                        title_fontsize='xx-small',
                         labelspacing=-.2)
                 a.yaxis.set_label_position("right")
+                if ax_index == int(len(figs[iout].axes_data)/2):
+                    a.set_ylabel('%s. (%s)'%( output.capitalize(), units[output] ))
                 a.tick_params(labelright=True, 
                                 labelleft=False, 
-                                labeltop=(ax_index==0), 
+                                labeltop=False, 
                                 labelbottom=(ax_index+1)==len(figs[0].axes_spec),
                                 which='both')
+                a.spines['top'].set_visible(ax_index==0)
+                a.spines['bottom'].set_visible(ax_index+1)==len(figs[0].axes_spec)
+                a.tick_params(right=True, 
+                              top=(ax_index==0),
+                              left=True, 
+                              bottom=(ax_index+1)==len(figs[0].axes_spec),
+                              which='both')
+
                 
                 locator = mdates.AutoDateLocator()
                 formatter = mdates.ConciseDateFormatter(locator)
@@ -271,29 +459,59 @@ def plotallstationsdata(streams,event,inventory,
 
                 a.yaxis.set_minor_locator(AutoMinorLocator())
                 a.yaxis.set_major_locator(AutoLocator())
-                a.yaxis.set_major_formatter(FormatStrFormatter("$%g$"))
+                a.yaxis.set_major_formatter(EngFormatter(places=1, sep="\N{THIN SPACE}"))
 
-                a=figs[iout].axes_spec[ax_index]                
-                if True:
-                    lax = scalogram(tr,a)      
-                else:
-                    a.plot(tr.times("matplotlib"), tr.data)          
-                a.legend([],[],
+                a=figs[iout].axes_spec[ax_index]          
+                lax = scalogram(tr,a,units[output])
+
+                plottimes(a,vlinelabels,vlinetimes,alllines=True)
+
+                leg = a.legend([],[],
                         title='%s. %s'%(output.capitalize(),tr.id),
                         title_fontsize='x-small',
-                        labelspacing=-.2)
+                        labelspacing=-.2,
+                        )
+                leg.set_zorder(99999)
                 a.yaxis.set_label_position("left")
+                if ax_index == int(len(figs[iout].axes_data)/2):
+                    a.set_ylabel("Frequency (Hz)",position='right')
+                else:
+                    a.set_ylabel("")
+                    if sharec:
+                        a.scalogram_cbar.remove()
+
                 a.tick_params(labelright=False, 
                                 labelleft=True, 
                                 labeltop=(ax_index==0), 
                                 labelbottom=(ax_index+1)==len(figs[0].axes_spec),
                                 which='both')
                 
+                a.spines['top'].set_visible(ax_index==0)
+                a.spines['bottom'].set_visible(ax_index+1)==len(figs[0].axes_spec)
+                a.tick_params(right=True, 
+                              top=(ax_index==0),
+                              left=True, 
+                              bottom=(ax_index+1)==len(figs[0].axes_spec),
+                              which='both')
+
                 locator = mdates.AutoDateLocator()
                 formatter = mdates.ConciseDateFormatter(locator)
                 a.xaxis.set_major_locator(locator)
                 a.xaxis.set_major_formatter(formatter)
 
+                a.grid(visible=True, which='major', color='gray', linestyle='dashdot', zorder=-999)
+                a.grid(visible=True, which='minor', color='beige',  ls='-', zorder=-9999) 
+
                 break
+
+    # Make all scalogram same color limits
+    if sharec:
+        for f,fig in enumerate(figs):
+            for a in fig.axes_spec:
+                a.scalogram.set_clim(*fig.scalogram_lims)
+                a.scalogram_cbar.yaxis.set_major_formatter(EngFormatter(unit=units[outputs[f]], 
+                                                            places=1, 
+                                                            sep="\N{THIN SPACE}"))
+
     
     return figs

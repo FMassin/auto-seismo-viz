@@ -11,7 +11,7 @@ saveopt = {}
 def event_plots(catalog,
                 eventstreams,
                 eventinventories, 
-                dpi=512,
+                dpi=256,
                 facecolor='none',
                 transparent=False,
                 **args):
@@ -19,7 +19,7 @@ def event_plots(catalog,
     for event, streams, inventory in zip(catalog,eventstreams,eventinventories):
         shorteventid = str(event.resource_id).split('/')[-1]
 
-        figs = plotallstationsdata(streams,event,inventory)
+        figs = plotallstationsdata(streams,event,inventory,max_num_station=16)
         print('Saving figs')
         for fig in figs:
             figname = 'data/%s_seisgram_%s.png'%(shorteventid,fig.basename)
@@ -31,7 +31,7 @@ def event_plots(catalog,
             print(figname)
 
 
-        figs = plotstationdata(streams,event,inventory)
+        figs = plotstationdata(streams,event,inventory,max_num_station=0)
         for fig in figs:
             for ax in fig.axes:
                 for t in ax.findobj(Text):

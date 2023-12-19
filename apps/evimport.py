@@ -49,6 +49,8 @@ def main(catalog=None,
             (vel:=stream.select(location='PV')) and
             (disp:=stream.select(location='PD'))):
 
+            print('This mseed has been preprocessed by sceewenv (it will be missing single vertical stations)')
+
             for l in ['EA','EV','ED','PA','PV','PD']:
                 for tr in stream.select(location=l):
                     stream.remove(tr)  
@@ -67,6 +69,8 @@ def main(catalog=None,
             eventinventories += [inventory]
 
         else:
+            print('Correcting mseed')
+
             # Remove empty (meta)data 
             eventinventory,eventstream = clean_inventorystream(inventory,stream)
 
