@@ -30,7 +30,7 @@ def qml2desc(file):
         if 'creationInfo' in  child.tag :
             for granchild in child:
                 if 'agencyID' in  granchild.tag :
-                    agency = granchild[0].text
+                    agency = granchild.text
 
         if 'origin' in  child.tag and child.attrib['publicID'] == prefOrId:
             for granchild in child:
