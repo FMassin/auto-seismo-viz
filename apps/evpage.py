@@ -42,7 +42,7 @@ def qml2desc(file):
                 if 'mag' in  granchild.tag :
                     mag = granchild[0].text
 
-    return mag, time, agency
+    return mag, time, agency.upper()
 
 ids = list(set([f.split('/')[-1].split('_')[0] for f in glob("%s/*_map.png"%argv[-1])]))
 
