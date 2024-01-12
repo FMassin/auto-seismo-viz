@@ -48,7 +48,7 @@ ids = list(set([f.split('/')[-1].split('_')[0] for f in glob("%s/*_map.png"%argv
 
 
 pagetemplate = '''
-${agency} M${mag} on ${date} 
+${date} M${mag} at ${agency} 
 ======================================================================
 
 At ${time} UTC (``$evtid``).
