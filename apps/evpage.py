@@ -125,6 +125,7 @@ stationtemplate = Template('''
 
 pages = []
 magnitudes = []
+times = [] 
 copyfiles = []
 for id in ids:
     if argv[-2] in ids and argv[-2] != id:
@@ -180,7 +181,7 @@ eventspage = '''
    :caption: Events:
    
 '''
-for i in argsort(magnitudes)[::-1]:
+for i in argsort(times)[::-1]: #magnitudes)[::-1]:
     eventspage += '''
    '''+pages[i]
     
