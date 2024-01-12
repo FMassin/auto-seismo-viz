@@ -27,6 +27,11 @@ def qml2desc(file):
 
 
     for child in root[0][0]:
+        if 'creationInfo' in  child.tag :
+            for granchild in child:
+                if 'agencyID' in  granchild.tag :
+                    agency = granchild[0].text
+
         if 'origin' in  child.tag and child.attrib['publicID'] == prefOrId:
             for granchild in child:
                 if 'time' in  granchild.tag :
@@ -37,13 +42,13 @@ def qml2desc(file):
                 if 'mag' in  granchild.tag :
                     mag = granchild[0].text
 
-    return mag, time
+    return mag, time, agency
 
 ids = list(set([f.split('/')[-1].split('_')[0] for f in glob("%s/*_map.png"%argv[-1])]))
 
 
 pagetemplate = '''
-M${mag} event on ${date} 
+${agency} M${mag} event on ${date} 
 ======================================================================
 
 At ${time} UTC (``$evtid``).
@@ -126,7 +131,7 @@ for id in ids:
         continue
     stations = list(set([f.split('/')[-1].split('.raw')[0] for f in glob("%s/%s/*.raw.png"%(argv[-1],id))]))
     
-    mag, time = qml2desc( '%s/%s.quakeml' % ( argv[-1], id ))
+    mag, time, agency = qml2desc( '%s/%s.quakeml' % ( argv[-1], id ))
 
     magnitudes += [float(mag)]
     pages += ['events/%s.rst'%id]
@@ -154,7 +159,8 @@ for id in ids:
         if len(stationsraw):
             stationsraw =  stationhead+stationsraw
 
-        eventpage = t.substitute({ 'evtid': id,
+        eventpage = t.substitute({ 'agency':agency,
+                                   'evtid': id,
                                    'time': time[11:19],  
                                    'date': time[:10], 
                                    'mag': int(float(mag)),                 
