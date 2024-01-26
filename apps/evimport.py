@@ -3,6 +3,8 @@ from addons.get_waveforms import remove_sensitivity,attach_distance,clean_invent
 from addons.get_events import match_events
 from obspy import read, read_inventory, read_events
 import os 
+from fnmatch import fnmatch
+
 
 def main(catalog=None,
          inventory=None,
@@ -11,6 +13,7 @@ def main(catalog=None,
          debug=True,
          channel='SN*,SH*,EN*,EH*,HN*,HH*,HG*',
          correction_method = remove_sensitivity,
+         gains={'GI.STG*EHZ':399635995.8},
          ):
     
     eventstreams=[]
@@ -37,7 +40,18 @@ def main(catalog=None,
                                 x=False)[0]
         
     inventory = read_inventory(inventory)#.select(channel=channel)
-    stream = read(stream)#.select(channel=channel)                    
+    stream = read(stream)#.select(channel=channel)      
+
+    for k in gains:
+        for n in inventory:
+            for s in n:
+                for c in s:
+                    mseedid = '%s.%s.%s.%s'%(n.code,s.code,c.location_code,c.code)
+                    if fnmatch(mseedid, k) and c.response.instrument_sensitivity.value != gains[k] :
+                        print(mseedid,'matches',k)
+                        print(mseedid,'gain is',c.response.instrument_sensitivity.value)
+                        c.response.instrument_sensitivity.value = gains[k]
+                        print(mseedid,'gain changed to',gains[k])
 
     for event in catalog:
         origin = event.preferred_origin()

@@ -187,10 +187,11 @@ def bmap(bounds=[-89, -83, 8, 14],
          bottom=False,
          fig=None,
          ax=None,
+         aspect=None,
          #url='https://server.arcgisonline.com/arcgis/rest/services/Ocean/World_Ocean_Base/MapServer/tile/{z}/{y}/{x}.jpg',
          #url='https://tile.osm.ch/osm-swiss-style/{z}/{x}/{y}.png',
          url='https://tile.osm.ch/switzerland/{z}/{x}/{y}.png',
-         zoom=10,
+         zoom=8,#10,
          legendfaults=True,
          label_style={'size':'small',
                       'path_effects':[matplotlib.patheffects.withStroke(linewidth=2,foreground="w")]}):
@@ -201,6 +202,11 @@ def bmap(bounds=[-89, -83, 8, 14],
 
     projection=ccrs.Orthographic(central_longitude=midlo,central_latitude=mila)
     
+
+    if ax is not None and aspect is None:
+        aspect = ax.get_box_aspect()
+
+
     ax=makefigax(fig=fig,
                  ax=ax,
                  axprop={'projection':projection},
@@ -211,6 +217,9 @@ def bmap(bounds=[-89, -83, 8, 14],
     ax.set_extent([bounds[0]-padlo, bounds[1]+padlo,
                    bounds[2]-padla, bounds[3]+padla])
     
+    print('before map:',aspect)
+    print('after map:',ax.get_box_aspect())
+
     gl=ax.gridlines(draw_labels=True, dms=True, x_inline=False, y_inline=False)
     if right or not left:
         gl.left_labels= False
@@ -247,7 +256,8 @@ def bmap(bounds=[-89, -83, 8, 14],
     ax.add_feature(cfeature.COASTLINE, linewidth=1,color='.5') 
     ax.add_feature(cfeature.RIVERS, linewidth=.5)
     
-    ax.add_image(cimgt.GoogleTiles(url=url), zoom)
+    if False:
+        ax.add_image(cimgt.GoogleTiles(url=url), zoom)
 
     if False:
         ax.add_wms(wms='https://www.gebco.net/data_and_products/gebco_web_services/web_map_service/mapserv',

@@ -9,13 +9,14 @@ import matplotlib.dates as mdates
 from matplotlib.markers import MarkerStyle, CapStyle
 
 
-from numpy import meshgrid,logspace,log10,abs,median, percentile, nan,linspace,argmin
+from numpy import meshgrid,logspace,log10,abs,median, percentile, nan,linspace,argmin,argsort
 from numpy.ma import masked_array
 
 from scipy.interpolate import interp2d
 
 from obspy.imaging.cm import pqlx
 from obspy.signal.tf_misfit import cwt
+from obspy.geodetics.base import gps2dist_azimuth
 
 from fnmatch import fnmatch
 from cartopy.crs import  Geodetic
@@ -70,19 +71,26 @@ def dataaxes(fig, nsubplots, gs, labelright, labelleft,sharey=False):
 
     return axes
 
-def stationdataaxes(stationwf,nsubplots):
+def stationdataaxes(stationwf,nsubplots,map):
     fig = figure(figsize=(10*golden,10))
     
     gs0 = GridSpec(1, 2, width_ratios=(1,golden), wspace=0, figure=fig)
-    gs00 = GridSpecFromSubplotSpec(2, 1, height_ratios=(golden,1), hspace=0, subplot_spec=gs0[0])
 
-    ax_map = fig.add_subplot(gs00[1])
-    ax_map.tick_params(direction="in", 
-                    which='both')
-    myaxstyle(ax_map)
+    if map:
+        gs00 = GridSpecFromSubplotSpec(2, 1, height_ratios=(golden,1), hspace=0, subplot_spec=gs0[0])
+
+        ax_map = fig.add_subplot(gs00[1])
+        ax_map.tick_params(direction="in", 
+                        which='both')
+        myaxstyle(ax_map)
+        axes_data = dataaxes(fig, nsubplots, gs00[0], labelright=False, labelleft=True)
+
+    else :
+        ax_map = None    
+        axes_data = dataaxes(fig, nsubplots, gs0[0], labelright=False, labelleft=True)
+
 
     axes_spec = dataaxes(fig, nsubplots, gs0[1], labelright=True, labelleft=False, sharey=True)
-    axes_data = dataaxes(fig, nsubplots, gs00[0], labelright=False, labelleft=True)
     axes_data[-1].tick_params(labelbottom=False)
     
     return ax_map, axes_data, axes_spec
@@ -92,7 +100,7 @@ def stationdataaxes(stationwf,nsubplots):
 def scalogram(trace,
               ax,
               output,
-              nfreqs=32,
+              nfreqs=64,
               ntimes=512*2
               ):
     
@@ -183,12 +191,13 @@ def scalogram(trace,
 
 
 def plotstationdata(streams,event,inventory, 
-                    outputs=['raw'],#acc','vel'], 
+                    outputs=['vel'],#raw'],#acc','vel'], 
                     units={'acc':'m.s$^{-2}$',
                            'vel':'m/s',
                            'disp':'m',
                            'raw':'counts'},
-                    max_num_station=4):
+                    max_num_station=4,
+                    map=False):
     stations=[]
     figs=[]
     for i,trace in enumerate(streams['raw']):
@@ -202,7 +211,7 @@ def plotstationdata(streams,event,inventory,
         ncha = len(stationwf[outputs[0]])
         noutput = len(stationwf)
 
-        ax_map, axes_data, axes_spec = stationdataaxes(stationwf, ncha*noutput)
+        ax_map, axes_data, axes_spec = stationdataaxes(stationwf, ncha*noutput, map)
 
         for iout,(output, wf) in enumerate(stationwf.items()):                 
             for itr,tr in enumerate(wf):
@@ -224,22 +233,22 @@ def plotstationdata(streams,event,inventory,
                 leg.set_zorder(99999)
                 a.xaxis_date()
                 a.yaxis.set_label_position("right")
-        
-        eewmap({'event':event,
-                'inventory':inventory.select(network=trace.stats.network,
-                                             station=trace.stats.station)},
-               title=False,
-               legend=False,
-               mapbounds=False,
-               others=[Catalog(events=[event])],
-               ax=ax_map)
-        #ax_map.legend([],[],title=trace.id,labelspacing=-.2)
+        if map:
+            eewmap({'event':event,
+                    'inventory':inventory.select(network=trace.stats.network,
+                                                station=trace.stats.station)},
+                title=False,
+                legend=False,
+                mapbounds=False,
+                others=[Catalog(events=[event])],
+                ax=ax_map)
+            #ax_map.legend([],[],title=trace.id,labelspacing=-.2)
         a.figure.basename = '%s.%s'%(station,'.'.join(outputs))
         figs += [a.figure]
     
     return figs
 
-def allstationsdataaxes(output,nsubplots):
+def allstationsdataaxes(output,nsubplots,map=False):
 
     fig = figure(figsize=(10,10*golden))
     fig.basename = '%s'%(output)
@@ -248,19 +257,21 @@ def allstationsdataaxes(output,nsubplots):
                 width_ratios=(golden, 1), 
                 wspace=0, 
                 figure=fig)
-    gs00 = GridSpecFromSubplotSpec(2, 1,    
-                                height_ratios=(1, golden), 
-                                hspace=0, 
-                                subplot_spec=gs0[1])
-
-    fig.ax_map = fig.add_subplot(gs00[0])
-    fig.ax_map.tick_params(direction="in", 
-                       which='both')
-    myaxstyle(fig.ax_map)
+    if map:
+        gs00 = GridSpecFromSubplotSpec(2, 1,    
+                                    height_ratios=(1, golden), 
+                                    hspace=0, 
+                                    subplot_spec=gs0[1])
+        fig.ax_map = fig.add_subplot(gs00[0])
+        fig.ax_map.tick_params(direction="in", 
+                        which='both')
+        myaxstyle(fig.ax_map)
+        fig.axes_data = dataaxes(fig, nsubplots, gs00[1], labelright=True, labelleft=False)
+    
+    else:
+        fig.axes_data = dataaxes(fig, nsubplots, gs0[1], labelright=True, labelleft=False)
 
     fig.axes_spec = dataaxes(fig, nsubplots, gs0[0], labelright=False, labelleft=True, sharey=True)
-    fig.axes_data = dataaxes(fig, nsubplots, gs00[1], labelright=True, labelleft=False)
-    
     return fig
 
 def plottimes(a,
@@ -299,67 +310,124 @@ def plotallstationsdata(streams,event,inventory,
                         max_num_station=4,#16
                         sharec=True,
                         ot=False,
-                        blacklist='*.STG2.*,*.STG8.*,*.STG5.*.HH?,*.STG11.*'
+                        ew=True,#False,
+                        map=False,
+                        all=True,
+                        orderbydistancefrom=None,#(14.73878,-91.56802),#Santiaguuito volcano
+                        whitelist='*',#GI.STG*,CH.*,8D.*',
+                        blacklist='*.BH?,*.HD?,*.BD?,*GI.STG2.*,GI.STG8.*,GI.STG5.*.HH?,GI.STG11.*,GI.STG*SH?'
                         ):
     
+    # EMPTY SPECTROGRAM
+    # fix gain EHZ (399635995.8 c/m/s)
+
     blacklist = blacklist.split(',')
+    whitelist = whitelist.split(',')
     #print(streams['raw'].__str__(extended=True))
     #print(event.preferred_origin())
 
     instruments = []
-    for output in streams:
-        if output not in outputs:
-            continue
-        for i,trace in enumerate(streams[output]):
-
-            mseedid = '%s.%s.%s.%s'%(trace.stats.network,trace.stats.station,trace.stats.location,trace.stats.channel)
-            if True in [fnmatch(mseedid, black) for black in blacklist ]:
-                print(mseedid,'is blacklisted')
-                continue
-            #print(trace)
-            instrument = '%s.%s.%s.%s'%(trace.stats.network,
-                                trace.stats.station,
-                                trace.stats.location,
-                                trace.stats.channel[:-1])
-            ok=False
-            for o in event.origins:
-                for a in o.arrivals:
-                    p=a.pick_id.get_referred_object()
-                    if '.'.join(instrument.split('.')[:-1]) == '%s.%s.%s'%(p.waveform_id.network_code,p.waveform_id.station_code,p.waveform_id.location_code):
-                        ok=True
-                        break
-            if not ok:
-                continue
-            if len(instruments)>=max_num_station:
+    instrumentcoordinates = []
+    if all:
+        for n in inventory:
+            if len(instruments)==max_num_station:
                 break
-            if instrument in instruments:
-                continue
-            instruments += [instrument]
+            for s in n:
+                if len(instruments)==max_num_station:
+                    break
+                for c in s:
+                    if len(instruments)==max_num_station:
+                        break
+                    mseedid = '%s.%s.%s.%s'%(n.code,s.code,c.location_code,c.code)
+                    if mseedid[:-1] in instruments:
+                        continue
 
+                    whitelisted = False
+                    for white in whitelist:
+                        if fnmatch(mseedid, white):
+                            whitelisted = True
+                    if not whitelisted:
+                        print(mseedid,'is not whitelisted')
+                        continue
+
+                    blacklisted = False
+                    for black in blacklist :
+                        if fnmatch(mseedid, black):
+                            blacklisted = True
+                    if blacklisted:
+                        print(mseedid,'is blacklisted')
+                        continue
+
+                    instruments += [mseedid[:-1]]
+                    instrumentcoordinates += [(c.latitude,c.longitude)]
+    else:
+        for output in streams:
+            if output not in outputs:
+                continue
+            for i,trace in enumerate(streams[output]):
+
+                mseedid = '%s.%s.%s.%s'%(trace.stats.network,trace.stats.station,trace.stats.location,trace.stats.channel)
+                if True in [fnmatch(mseedid, black) for black in blacklist ]:
+                    print(mseedid,'is blacklisted')
+                    continue
+
+                if True not in [fnmatch(mseedid, white) for white in whitelist ]:
+                    print(mseedid,'is not whitelisted')
+                    continue
+
+                print(trace)
+                instrument = '%s.%s.%s.%s'%(trace.stats.network,
+                                    trace.stats.station,
+                                    trace.stats.location,
+                                    trace.stats.channel[:-1])
+                ok=False
+                for o in event.origins:
+                    for a in o.arrivals:
+                        p=a.pick_id.get_referred_object()
+                        if '.'.join(instrument.split('.')[:-2]) == '%s.%s'%(p.waveform_id.network_code,p.waveform_id.station_code):
+                            ok=True
+                            break
+                if not ok:
+                    continue
+                if len(instruments)>=max_num_station:
+                    break
+                if instrument in instruments:
+                    continue
+                instruments += [instrument]
+
+    if orderbydistancefrom is not None:
+        distances = [gps2dist_azimuth(*orderbydistancefrom,*c)[0] for c in instrumentcoordinates]
+        instruments = [instruments[i] for i in argsort(distances)]
+
+        
+        
     #print(instruments)
-    figs = [allstationsdataaxes(output,len(instruments)) for output in outputs]
+    figs = [allstationsdataaxes(output,len(instruments),map=map) for output in outputs]
     
-    for fig in figs:
-        la = [s.latitude for n in inventory for s in n]
-        lo = [s.longitude for n in inventory for s in n]
-        typ = ['HH']
-        fig.bmap = bmap(bounds=[min(lo), max(lo), min(la), max(la)],
-            right=True,
-            top=True,
-            ax=fig.ax_map,
-            zoom=15)
-        marker = MarkerStyle('2')
-        marker._capstyle = CapStyle.round
-        fig.bmap.plot(lo,la,
-                      linestyle='',
-                      marker = marker,
-                      markeredgewidth = 2,
-                      path_effects = [patheffects.withStroke(linewidth=4,foreground="w")],
-                      transform=Geodetic())
+    if map:
+        for fig in figs:
+            la = [s.latitude for n in inventory for s in n]
+            lo = [s.longitude for n in inventory for s in n]
+            typ = ['HH']
+            fig.bmap = bmap(bounds=[min(lo), max(lo), min(la), max(la)],
+                right=True,
+                top=True,
+                ax=fig.ax_map,
+                zoom=15)
+            marker = MarkerStyle('2')
+            marker._capstyle = CapStyle.round
+            fig.bmap.plot(lo,la,
+                        linestyle='',
+                        marker = marker,
+                        markeredgewidth = 2,
+                        path_effects = [patheffects.withStroke(linewidth=4,foreground="w")],
+                        transform=Geodetic())
 
     #return figs
     # Preferred origin
-    pref = event.origins[-1]
+    preforig = event.preferred_origin()
+    if preforig is None:
+        preforig = event.origins[-1]
     for o in event.origins:
         pref = ['','pref.'][str(event.preferred_origin().resource_id) == str(o.resource_id)]
     
@@ -389,23 +457,23 @@ def plotallstationsdata(streams,event,inventory,
                 break
             
             for i,label in enumerate(vlinelabels):
-                vlinetimes[i] = []
-                   
-            for o in event.origins:
+                vlinetimes[i] = []                   
 
-                if ot and len(pref):
-                    label = '$Org._{T.}^{pref.}$'
-                    vlinelabels += [label] 
-                    vlinetimes += [[o.time.matplotlib_date]] 
-                
-                if ot and len(first):
-                    label = '$Org._{CT.}^{early.}$'
-                    vlinelabels += [label] 
-                    vlinetimes += [[o.time.matplotlib_date]] 
+            if ot and len(pref):
+                label = '$Org._{T.}^{pref.}$'
+                vlinelabels += [label] 
+                vlinetimes += [[pref.time.matplotlib_date]] 
+            
+            if ew and len(first):
+                label = '$Org._{CT.}^{early.}$'
+                vlinelabels += [label] 
+                vlinetimes += [[first.creation_info.creation_time.matplotlib_date]] 
+
+            for o in event.origins:
 
                 for a in o.arrivals:
                     p=a.pick_id.get_referred_object()
-                    if '.'.join(instrument.split('.')[:-1]) == '%s.%s.%s'%(p.waveform_id.network_code,p.waveform_id.station_code,p.waveform_id.location_code):
+                    if '.'.join(instrument.split('.')[:-2]) == '%s.%s'%(p.waveform_id.network_code,p.waveform_id.station_code):
                         label = '$Pick_{%s}^{%s.%s}$' % ( p.phase_hint, p.evaluation_mode[:4], pref ) 
                         if label not in vlinelabels:
                             vlinelabels += [label] 
@@ -421,11 +489,13 @@ def plotallstationsdata(streams,event,inventory,
                 plottimes(a,vlinelabels,vlinetimes,y=median(tr.data))
 
                 if ax_index == 0:
-                    leg = a.legend(bbox_to_anchor=(0.02, 1.05, .96, .102), 
-                                   loc='lower left',
+                    leg = a.legend(bbox_to_anchor=(0.98, 1.05), 
+                                   loc='lower right',
                                    ncol=3, 
-                                   fontsize='xx-small',
-                                   mode="expand", 
+                                   fontsize='x-small',
+                                   title='%s on %s'%(event.event_type.capitalize(), str(preforig.time)[:16]),
+                                   title_fontsize='x-small',
+                                   #mode="expand", 
                                    borderaxespad=0.)
                     a.add_artist(leg)
 
@@ -440,7 +510,7 @@ def plotallstationsdata(streams,event,inventory,
                     a.set_ylabel('%s. (%s)'%( output.capitalize(), units[output] ))
                 a.tick_params(labelright=True, 
                                 labelleft=False, 
-                                labeltop=False, 
+                                labeltop=False, #( or not map), 
                                 labelbottom=(ax_index+1)==len(figs[0].axes_spec),
                                 which='both')
                 a.spines['top'].set_visible(ax_index==0)
@@ -508,10 +578,12 @@ def plotallstationsdata(streams,event,inventory,
     if sharec:
         for f,fig in enumerate(figs):
             for a in fig.axes_spec:
-                a.scalogram.set_clim(*fig.scalogram_lims)
-                a.scalogram_cbar.yaxis.set_major_formatter(EngFormatter(unit=units[outputs[f]], 
-                                                            places=1, 
-                                                            sep="\N{THIN SPACE}"))
-
+                try:
+                    a.scalogram.set_clim(*fig.scalogram_lims)
+                    a.scalogram_cbar.yaxis.set_major_formatter(EngFormatter(unit=units[outputs[f]], 
+                                                                places=1, 
+                                                                sep="\N{THIN SPACE}"))
+                except:
+                    pass
     
     return figs
