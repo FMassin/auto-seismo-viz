@@ -308,7 +308,13 @@ def remove_sensitivity(eventstreams,
 
         #eventstreams[output].detrend(**detrend_options)#, plot=True)
         if filters[output]:
-            eventstreams[output].filter(**filters[output])            
+            for tr in eventstreams[output]:
+                try:
+                    tr.filter(**filters[output])
+                except:
+                    print("WARNING: CANNOT FILTER THIS:")
+                    print(tr)
+                    print(filters[output])
             
     return eventstreams
 
