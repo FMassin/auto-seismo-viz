@@ -91,11 +91,11 @@ def scfinderauthor(origin, lineauthors=None):
     else:
         bm = Basemap()
         if origin.depth / 1000 > 70:
-            lineauthors += ['scfd85sym']
+            lineauthors += ['scFdDeep','scfd85sym']
         elif bm.is_land(origin.longitude, origin.latitude):
-            lineauthors += ['scfdcrust']
+            lineauthors += ['scFdOnshore','scfdcrust']
         else:
-            lineauthors += ['scfd20asym']
+            lineauthors += ['scFdOffshore','scfd20asym']
     return lineauthors
 
 def plot_eewsourcepoints(event,

@@ -1093,7 +1093,16 @@ def performance_timelines(event,
     axes[3].set_yticks([1,2,3,4,5,6,7,8,9,10,11,12])
     axes[3].set_yticklabels(['I','II','III','IV','V','VI','VII','VIII','IX','X','XI','XII'])
     axes[3].set_ylim(lim)
-    top=max([max(axesdata[3]['y'][key][1:]+data['yep'][key][1:]) for key in axesdata[3]['y']])
+    for key in axesdata[3]['y']:
+        try:
+            max(axesdata[3]['y'][key][1:]+data['yep'][key][1:])
+        except Exception as e:
+            print('Something is wrong with',key)
+            print('axesdata[3]["y"]:', axesdata[3]['y'][key])
+            print('data["yep"]:', data['yep'][key])
+            print(e)
+
+    top=max([max(axesdata[3]['y'][key][1:]+data['yep'][key][1:]) for key in axesdata[3]['y'] if len(axesdata[3]['y'][key][1:]+data['yep'][key][1:]) ])
     bot=numpy.nanmin([numpy.nanmin([axesdata[3]['y'][key][i]-data['yem'][key][i] for i in range(len(axesdata[3]['y'][key]))]) for key in axesdata[3]['y']])
     axes[3].set_ylim([bot-.3,top+.3])
     #axes[3].set_ylim(bottom=1)
