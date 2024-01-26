@@ -318,7 +318,7 @@ def remove_sensitivity(eventstreams,
             
     return eventstreams
 
-def clean_inventorystream(inventory,stream):
+def clean_inventorystream(inventory,stream,cleaninv=False):
     #Remove traces without response, cha, sta, net without data from inventory
     rmtr = []
     for tr in stream:
@@ -354,22 +354,23 @@ def clean_inventorystream(inventory,stream):
     for tr in rmtr:
         print('Removing (no response)',tr)
         stream.remove(tr)
-
-    rmcha=[]
-    for n, net in enumerate(inventory):
-        for s,sta in enumerate(net):
-            for c,cha in enumerate(sta):
-                mseedid = {'network':net.code,
-                           'station':sta.code,
-                           #'location':cha.location_code,
-                           'channel':cha.code.replace('X','*')}
-                if not len(stream.select(**mseedid)):
-                    rmcha+=[mseedid]
-            
-    for mseedid in rmcha:
-        print('Removing',' '.join(["%s: %s"%(k,mseedid[k]) for k in mseedid]))
-        tmp = inventory.remove(**mseedid)
-        inventory = tmp
+    
+    if cleaninv:
+        rmcha=[]
+        for n, net in enumerate(inventory):
+            for s,sta in enumerate(net):
+                for c,cha in enumerate(sta):
+                    mseedid = {'network':net.code,
+                            'station':sta.code,
+                            #'location':cha.location_code,
+                            'channel':cha.code.replace('X','*')}
+                    if not len(stream.select(**mseedid)):
+                        rmcha+=[mseedid]
+                
+        for mseedid in rmcha:
+            print('Removing',' '.join(["%s: %s"%(k,mseedid[k]) for k in mseedid]))
+            tmp = inventory.remove(**mseedid)
+            inventory = tmp
 
     
     print('Stream left:')
