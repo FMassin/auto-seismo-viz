@@ -2,7 +2,7 @@
 EVENTID=$2
 STORE=$3
 PREF="/opt/seiscomp/bin/seiscomp exec" 
-ENVALIAS="sceewvenv"
+ENVALIAS="sceewenv"
 #FDSNWS='arclink.ethz.ch:8080'
 if [ !  -n "$2" ]; then
     STORE='./'
@@ -11,8 +11,13 @@ fi
 ssh -o RemoteCommand=none -T $1 <<EOI
 
 IFS="," read -r ID TI LA LO DE ML DESC <<< \$(curl "http://localhost:8080/fdsnws/event/1/query?eventid=${EVENTID}&format=csv")
-BEG=\$(date -d "\$TI -1 min" "+%FT%T")
-END=\$(date -d "\$TI +3 min" "+%FT%T")
+echo \$TI
+BEG=\$(TZ=UTC date -d "\$TI -30 min" "+%FT%T")
+END=\$(TZ=UTC date -d "\$TI +60 min" "+%FT%T")
+
+FDSNWS=localhost:8080
+DBINV=localhost/seiscomp
+DBLOC=localhost/seiscomp
 
 IFS="=" read -r TRASH DBINV <<< \$( grep "^database.inventory" ~/.seiscomp/global.cfg )
 IFS="=" read -r TRASH DBLOC <<< \$( grep "^database" ~/.seiscomp/global.cfg |grep -v inventory|grep -v config)
@@ -31,6 +36,8 @@ echo "    begin:" \$BEG
 echo "      end:" \$END
 
 mkdir -p $STORE 
+
+rm $STORE/${EVENTID//\//_}* 
 
 curl "http://\$FDSNWS/fdsnws/dataselect/1/query?starttime=\$BEG&endtime=\$END" > $STORE/${EVENTID//\//_}.raw.mseed
 
