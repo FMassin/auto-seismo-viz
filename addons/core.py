@@ -104,6 +104,9 @@ def plot_eewsourcepoints(event,
                          magnitude_types=['MVS'],
                          colors={'MVS':'C2','Mfd':'C1'}):
 
+    if event.preferred_magnitude() is None:
+        event.preferred_magnitude = event.magnitudes[-1].resource_id.get_referred_object
+
     bmap.plot(event.preferred_origin().longitude,
               event.preferred_origin().latitude,
               '*',
@@ -162,6 +165,9 @@ def plot_eewsourcelines(event,
                         magnitude_types=['Mfd'],
                          colors={'MVS':'C2','Mfd':'C1'}):
 
+    if event.preferred_magnitude() is None:
+        event.preferred_magnitude = event.magnitudes[-1].resource_id.get_referred_object
+        
     magnitudes=[]
     for m in event.magnitudes:
         if (m.creation_info.author is not None and
@@ -1015,6 +1021,10 @@ def eewmap(data,
            **kwargs):
 
     origin = data['event'].preferred_origin()
+
+    if data['event'].preferred_magnitude() is None:
+        data['event'].preferred_magnitude = data['event'].magnitudes[-1].resource_id.get_referred_object
+
     magnitude = data['event'].preferred_magnitude()
     lineauthors = scfinderauthor(origin, lineauthors=lineauthors)
 

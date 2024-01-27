@@ -19,6 +19,9 @@ def qml2desc(file):
     # the xml document
     root = tree.getroot()
     
+    prefMagId = None
+    mag = None
+
     for child in root[0][0]:
         if 'preferredOriginID' in child.tag :
             prefOrId = child.text
@@ -134,7 +137,11 @@ for id in ids:
     
     mag, time, agency = qml2desc( '%s/%s.quakeml' % ( argv[-1], id ))
 
-    magnitudes += [float(mag)]
+    try:
+        magnitudes += [float(mag)]
+    except Exception as e:
+        magnitudes += [None]
+
     pages += ['events/%s.rst'%id]
 
     with open('events/%s.rst'%id, 'w', encoding='utf-8') as file:
@@ -160,11 +167,15 @@ for id in ids:
         if len(stationsraw):
             stationsraw =  stationhead+stationsraw
 
+        try:
+            mstr = int(float(mag))
+        except Exception as e:
+            mstr = None
         eventpage = t.substitute({ 'agency':agency,
                                    'evtid': id,
                                    'time': time[11:19],  
                                    'date': time[:10], 
-                                   'mag': int(float(mag)),                 
+                                   'mag': mstr,                 
                                    'evtstore': argv[-1],
                                    'stations': stationsraw,
                                    'anim': anim
