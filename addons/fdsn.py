@@ -19,7 +19,10 @@ def cleandata(catalog,eventstreams,eventinventories):
             
             # Improve waveforms attributes
             eventstreams[e][output].attach_response(eventinventories[e])
-            eventstreams[e][output] = attach_distance(eventstreams[e][output],eventinventories[e],event.preferred_origin())
+            org = event.preferred_origin()
+            if org is None:
+                org = event.origins[-1]
+            eventstreams[e][output] = attach_distance(eventstreams[e][output],eventinventories[e],org)
 
             if (horiz:=stream.select(channel='*X')):
                 eventstreams[e][output] += horiz

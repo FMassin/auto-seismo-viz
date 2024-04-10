@@ -55,7 +55,9 @@ def main(catalog=None,
 
     for event in catalog:
         origin = event.preferred_origin()
-
+        if origin is None:
+            origin = event.origins[-1]
+        
         if ((accenv:=stream.select(location='EA')) and
             (velenv:=stream.select(location='EV')) and
             (dispenv:=stream.select(location='ED')) and 

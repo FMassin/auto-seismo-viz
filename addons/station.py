@@ -9,7 +9,7 @@ import matplotlib.dates as mdates
 from matplotlib.markers import MarkerStyle, CapStyle
 
 
-from numpy import meshgrid,logspace,log10,abs,median, percentile, nan,linspace,argmin,argsort
+from numpy import meshgrid,logspace,log10,abs,median, percentile, nan,linspace,argmin,argsort,nanmin,nanmax
 from numpy.ma import masked_array
 
 from scipy.interpolate import interp2d
@@ -285,7 +285,7 @@ def plottimes(a,
         for t in vlinetimes[i]:
             if 'rg' in vlinelabels[i] or alllines:
                 a.axvline(t,
-                        label=label,
+                        label=None,
                         color='C%d'%range(1,10)[vlinelabels.index(vlinelabels[i])],
                         zorder=999999999,
                         linewidth=1,
@@ -294,13 +294,51 @@ def plottimes(a,
             else:
                 a.plot(t,y,
                         marker=4,
-                        label=label,
+                        label=None,
                         markeredgecolor='w',
                         markeredgewidth=1,
                         color='C%d'%range(1,10)[vlinelabels.index(vlinelabels[i])]
                         )
-            label=None
-            
+
+def plottimelabels(a,
+                   vlinelabels,
+                   title,
+                   alllines=False,
+                   y=0,
+                   ):
+    labeldone = []
+    for i,label in enumerate(vlinelabels):
+        if label in labeldone:
+            continue
+        if 'rg' in vlinelabels[i] or alllines:
+            a.axvline(nan,
+                      label=label,
+                      color='C%d'%range(1,10)[vlinelabels.index(vlinelabels[i])],
+                      zorder=999999999,
+                      linewidth=1,
+                      path_effects=[patheffects.withStroke(linewidth=2, foreground="w")]
+                      )
+            labeldone += [label]
+        else:
+            a.plot(nan,y,
+                   marker=4,
+                   label=label,
+                   markeredgecolor='w',
+                   markeredgewidth=1,
+                   color='C%d'%range(1,10)[vlinelabels.index(vlinelabels[i])]
+                   )
+            labeldone += [label]
+
+    leg = a.legend(bbox_to_anchor=(0.98, 1.05), 
+                    loc='lower right',
+                    ncol=3, 
+                    fontsize='x-small',
+                    title=title,
+                    title_fontsize='x-small',
+                    #mode="expand", 
+                    borderaxespad=0.)
+    a.add_artist(leg)
+
 def plotallstationsdata(streams,event,inventory, 
                         outputs=['vel'],#'raw',acc'], 
                         units={'acc':'m.s$^{-2}$',
@@ -313,11 +351,19 @@ def plotallstationsdata(streams,event,inventory,
                         ew=True,#False,
                         map=False,
                         all=True,
+                        datalim=True,
                         orderbydistancefrom=None,#(14.73878,-91.56802),#Santiaguuito volcano
                         whitelist='*',#GI.STG*,CH.*,8D.*',
-                        blacklist='*.BH?,*.HD?,*.BD?,*GI.STG2.*,GI.STG8.*,GI.STG5.*.HH?,GI.STG11.*,GI.STG*SH?'
-                        ):
+                        blacklist='*.BH?,*.HD?,*.BD?,*GI.STG2.*,GI.STG8.*,GI.STG5.*.HH?,GI.STG*SH?',
+                        **args):
     
+    if isinstance(all,str):
+        all = bool(all)
+
+    if isinstance(orderbydistancefrom,str):
+        orderbydistancefrom = tuple([float(x) for x in orderbydistancefrom.split(',')])
+        print(orderbydistancefrom)
+
     # EMPTY SPECTROGRAM
     # fix gain EHZ (399635995.8 c/m/s)
 
@@ -328,18 +374,54 @@ def plotallstationsdata(streams,event,inventory,
 
     instruments = []
     instrumentcoordinates = []
+
+    for output in streams:
+        if output not in outputs:
+            continue
+        for i,trace in enumerate(streams[output]):
+
+            mseedid = '%s.%s.%s.%s'%(trace.stats.network,trace.stats.station,trace.stats.location,trace.stats.channel)
+            if True in [fnmatch(mseedid, black) for black in blacklist ]:
+                print(mseedid,'is blacklisted')
+                continue
+
+            if True not in [fnmatch(mseedid, white) for white in whitelist ]:
+                print(mseedid,'is not whitelisted')
+                continue
+
+            instrument = '%s.%s.%s.%s'%(trace.stats.network,
+                                trace.stats.station,
+                                trace.stats.location,
+                                trace.stats.channel[:-1])
+            ok=False
+            for o in event.origins:
+                for a in o.arrivals:
+                    p=a.pick_id.get_referred_object()
+                    if '.'.join(instrument.split('.')[:-2]) == '%s.%s'%(p.waveform_id.network_code,p.waveform_id.station_code):
+                        ok=True
+                        break
+            if not ok:
+                print(mseedid,'is not picked')
+                continue
+
+            if instrument in instruments:
+                print(mseedid,'is already in')
+                continue
+            instruments += [instrument]
+            c = inventory.select(network=trace.stats.network, 
+                                 station=trace.stats.station, 
+                                 location=trace.stats.location, 
+                                 channel=trace.stats.channel, 
+                                 time=trace.stats.starttime)[-1][-1][-1]
+            instrumentcoordinates += [(c.latitude,c.longitude)]
+    
     if all:
         for n in inventory:
-            if len(instruments)==max_num_station:
-                break
             for s in n:
-                if len(instruments)==max_num_station:
-                    break
                 for c in s:
-                    if len(instruments)==max_num_station:
-                        break
                     mseedid = '%s.%s.%s.%s'%(n.code,s.code,c.location_code,c.code)
                     if mseedid[:-1] in instruments:
+                        print(mseedid,'is already in')
                         continue
 
                     whitelisted = False
@@ -360,49 +442,30 @@ def plotallstationsdata(streams,event,inventory,
 
                     instruments += [mseedid[:-1]]
                     instrumentcoordinates += [(c.latitude,c.longitude)]
-    else:
-        for output in streams:
-            if output not in outputs:
-                continue
-            for i,trace in enumerate(streams[output]):
-
-                mseedid = '%s.%s.%s.%s'%(trace.stats.network,trace.stats.station,trace.stats.location,trace.stats.channel)
-                if True in [fnmatch(mseedid, black) for black in blacklist ]:
-                    print(mseedid,'is blacklisted')
-                    continue
-
-                if True not in [fnmatch(mseedid, white) for white in whitelist ]:
-                    print(mseedid,'is not whitelisted')
-                    continue
-
-                print(trace)
-                instrument = '%s.%s.%s.%s'%(trace.stats.network,
-                                    trace.stats.station,
-                                    trace.stats.location,
-                                    trace.stats.channel[:-1])
-                ok=False
-                for o in event.origins:
-                    for a in o.arrivals:
-                        p=a.pick_id.get_referred_object()
-                        if '.'.join(instrument.split('.')[:-2]) == '%s.%s'%(p.waveform_id.network_code,p.waveform_id.station_code):
-                            ok=True
-                            break
-                if not ok:
-                    continue
-                if len(instruments)>=max_num_station:
-                    break
-                if instrument in instruments:
-                    continue
-                instruments += [instrument]
-
+    
     if orderbydistancefrom is not None:
         distances = [gps2dist_azimuth(*orderbydistancefrom,*c)[0] for c in instrumentcoordinates]
         instruments = [instruments[i] for i in argsort(distances)]
-
-        
+    
+    if len(instruments) > max_num_station:
+        distances = distances[:max_num_station]
+        instruments = instruments[:max_num_station]
         
     #print(instruments)
     figs = [allstationsdataaxes(output,len(instruments),map=map) for output in outputs]
+
+    
+
+    
+    # Make all time limits equal to data span 
+    if datalim:
+        alltimes = [t for output in outputs for tr in streams[output] for t in tr.times("matplotlib")]
+        timelim = [ nanmin(alltimes),
+                    nanmax(alltimes) ]
+        print('Fixing time limits to: ',timelim)
+        for f,fig in enumerate(figs):
+            for a in fig.axes_spec:
+                a.set_xlim(timelim)
     
     if map:
         for fig in figs:
@@ -429,14 +492,26 @@ def plotallstationsdata(streams,event,inventory,
     if preforig is None:
         preforig = event.origins[-1]
     for o in event.origins:
-        pref = ['','pref.'][str(event.preferred_origin().resource_id) == str(o.resource_id)]
+        pref = ['','pref.'][str(preforig.resource_id) == str(o.resource_id)]
     
     # Earliest origin
     first = argmin([o.creation_info.creation_time for o in event.origins])
     first = event.origins[first]
 
+    allvlinelabels = []
     vlinelabels = []
     vlinetimes = []
+    
+    if ot and len(pref):
+        label = '$Org._{T.}^{pref.}$'
+        vlinelabels += [label] 
+        vlinetimes += [[pref.time.matplotlib_date]] 
+    
+    if ew and len(first):
+        label = '$Org._{CT.}^{early.}$'
+        vlinelabels += [label] 
+        vlinetimes += [[first.creation_info.creation_time.matplotlib_date]] 
+
     for instrument in instruments:
 
         ax_index = instruments.index(instrument)
@@ -451,26 +526,23 @@ def plotallstationsdata(streams,event,inventory,
         print(instrument)
         #print(stationwf[outputs[0]])
         ncha = len(stationwf[outputs[0]]) #  ALLOW MULTIPLE INSTRUMENTS SAME STATION? 
-
+        
         for iout,(output, wf) in enumerate(stationwf.items()):    
             if iout+1>len(figs):
                 break
             
-            for i,label in enumerate(vlinelabels):
-                vlinetimes[i] = []                   
+            if not len(wf):
+                for a in [ figs[iout].axes_data[ax_index], figs[iout].axes_spec[ax_index] ]:
+                    leg = a.legend([],[],
+                                title='%s. %s'%(output.capitalize(),instrument),
+                                title_fontsize='xx-small',
+                                labelspacing=-.2)
+                    a.add_artist(leg)
 
-            if ot and len(pref):
-                label = '$Org._{T.}^{pref.}$'
-                vlinelabels += [label] 
-                vlinetimes += [[pref.time.matplotlib_date]] 
-            
-            if ew and len(first):
-                label = '$Org._{CT.}^{early.}$'
-                vlinelabels += [label] 
-                vlinetimes += [[first.creation_info.creation_time.matplotlib_date]] 
+            #for i,label in enumerate(vlinelabels):
+            #    vlinetimes[i] = []                   
 
             for o in event.origins:
-
                 for a in o.arrivals:
                     p=a.pick_id.get_referred_object()
                     if '.'.join(instrument.split('.')[:-2]) == '%s.%s'%(p.waveform_id.network_code,p.waveform_id.station_code):
@@ -479,25 +551,18 @@ def plotallstationsdata(streams,event,inventory,
                             vlinelabels += [label] 
                             vlinetimes += [[]] 
                         vlinetimes[vlinelabels.index(label)] += [p.time.matplotlib_date]
-
+            
+            print(vlinelabels)
+            print(vlinetimes)
+            
             for itr,tr in enumerate(wf): #  ALLOW MULTIPLE INSTRUMENTS SAME STATION? 
                 
+                # Seismogram
                 a = figs[iout].axes_data[ax_index]
 
                 a.plot(tr.times("matplotlib"), tr.data)
 
                 plottimes(a,vlinelabels,vlinetimes,y=median(tr.data))
-
-                if ax_index == 0:
-                    leg = a.legend(bbox_to_anchor=(0.98, 1.05), 
-                                   loc='lower right',
-                                   ncol=3, 
-                                   fontsize='x-small',
-                                   title='%s on %s'%(event.event_type.capitalize(), str(preforig.time)[:16]),
-                                   title_fontsize='x-small',
-                                   #mode="expand", 
-                                   borderaxespad=0.)
-                    a.add_artist(leg)
 
                 a.set_xlim([min(tr.times("matplotlib")),max(tr.times("matplotlib"))])
                 
@@ -508,29 +573,13 @@ def plotallstationsdata(streams,event,inventory,
                 a.yaxis.set_label_position("right")
                 if ax_index == int(len(figs[iout].axes_data)/2):
                     a.set_ylabel('%s. (%s)'%( output.capitalize(), units[output] ))
-                a.tick_params(labelright=True, 
-                                labelleft=False, 
-                                labeltop=False, #( or not map), 
-                                labelbottom=(ax_index+1)==len(figs[0].axes_spec),
-                                which='both')
-                a.spines['top'].set_visible(ax_index==0)
-                a.spines['bottom'].set_visible(ax_index+1)==len(figs[0].axes_spec)
-                a.tick_params(right=True, 
-                              top=(ax_index==0),
-                              left=True, 
-                              bottom=(ax_index+1)==len(figs[0].axes_spec),
-                              which='both')
-
-                
-                locator = mdates.AutoDateLocator()
-                formatter = mdates.ConciseDateFormatter(locator)
-                a.xaxis.set_major_locator(locator)
-                a.xaxis.set_major_formatter(formatter)
 
                 a.yaxis.set_minor_locator(AutoMinorLocator())
                 a.yaxis.set_major_locator(AutoLocator())
                 a.yaxis.set_major_formatter(EngFormatter(places=1, sep="\N{THIN SPACE}"))
 
+
+                # Scalogram
                 a=figs[iout].axes_spec[ax_index]          
                 lax = scalogram(tr,a,units[output])
 
@@ -550,29 +599,42 @@ def plotallstationsdata(streams,event,inventory,
                     if sharec:
                         a.scalogram_cbar.remove()
 
-                a.tick_params(labelright=False, 
-                                labelleft=True, 
-                                labeltop=(ax_index==0), 
-                                labelbottom=(ax_index+1)==len(figs[0].axes_spec),
-                                which='both')
-                
-                a.spines['top'].set_visible(ax_index==0)
-                a.spines['bottom'].set_visible(ax_index+1)==len(figs[0].axes_spec)
+                break
+
+    for fig in figs:
+        a = fig.axes_data[0]
+        if event.event_type is None:
+            event.event_type = "other event"
+        plottimelabels(a,
+                       vlinelabels,
+                       '%s on %s'%(event.event_type.capitalize(), str(preforig.time)[:16]) )
+        
+        
+    # Make all spec and seis plot tick and axis lines
+    for f,fig in enumerate(figs):
+        for grpindex,axgroup in enumerate([fig.axes_spec, fig.axes_data]): # order matters
+            for ax_index,a in enumerate(axgroup):
+
+                top=(ax_index==0)                
+                if  grpindex:
+                    top = False
+                else:
+                    a.grid(visible=True, which='major', color='gray', linestyle='dashdot', zorder=-999)
+                    a.grid(visible=True, which='minor', color='beige',  ls='-', zorder=-9999) 
+
+                a.spines['top'].set_visible(top)
                 a.tick_params(right=True, 
-                              top=(ax_index==0),
-                              left=True, 
-                              bottom=(ax_index+1)==len(figs[0].axes_spec),
-                              which='both')
+                            top=top,
+                            left=True, 
+                            bottom=(ax_index+1)==len(axgroup),
+                            which='both')
+                    
+                a.spines['bottom'].set_visible(ax_index+1)==len(axgroup)
 
                 locator = mdates.AutoDateLocator()
                 formatter = mdates.ConciseDateFormatter(locator)
                 a.xaxis.set_major_locator(locator)
                 a.xaxis.set_major_formatter(formatter)
-
-                a.grid(visible=True, which='major', color='gray', linestyle='dashdot', zorder=-999)
-                a.grid(visible=True, which='minor', color='beige',  ls='-', zorder=-9999) 
-
-                break
 
     # Make all scalogram same color limits
     if sharec:
@@ -585,5 +647,6 @@ def plotallstationsdata(streams,event,inventory,
                                                                 sep="\N{THIN SPACE}"))
                 except:
                     pass
-    
+
+
     return figs

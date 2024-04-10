@@ -50,6 +50,9 @@ def attach_distance(self,
         trace.stats.coordinates = {'latitude': station.latitude,
                                    'longitude':station.longitude,
                                    'elevation':station.elevation}
+        if origin.latitude is None or origin.longitude is None:
+            trace.stats.distance = 0.
+            continue
         distance = gps2dist_azimuth(station.latitude,
                                     station.longitude,
                                     origin.latitude,

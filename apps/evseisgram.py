@@ -18,13 +18,17 @@ def event_plots(catalog,
                 max_num_single_station=4,
                 **args):
 
+    if isinstance(max_num_station,str):
+        max_num_station = int(max_num_station)
+        
     for event, streams, inventory in zip(catalog,eventstreams,eventinventories):
         shorteventid = str(event.resource_id).split('/')[-1]
 
         figs = plotallstationsdata(streams,
                                    event,
                                    inventory,
-                                   max_num_station=max_num_station)
+                                   max_num_station=max_num_station,
+                                   **args)
         print('Saving figs')
         for fig in figs:
             figname = 'data/%s_seisgram_%s.png'%(shorteventid,fig.basename)
@@ -35,7 +39,9 @@ def event_plots(catalog,
                         transparent=transparent)
             print(figname)
 
-
+        if float(max_num_single_station) == 0:
+             continue
+        
         figs = plotstationdata(streams,event,inventory,max_num_station=max_num_single_station)
         for fig in figs:
             for ax in fig.axes:
