@@ -188,6 +188,7 @@ def bmap(bounds=[-89, -83, 8, 14],
          fig=None,
          ax=None,
          aspect=None,
+         quickndirty=False,
          #url='https://server.arcgisonline.com/arcgis/rest/services/Ocean/World_Ocean_Base/MapServer/tile/{z}/{y}/{x}.jpg',
          #url='https://tile.osm.ch/osm-swiss-style/{z}/{x}/{y}.png',
          url='https://tile.osm.ch/switzerland/{z}/{x}/{y}.png',
@@ -258,14 +259,15 @@ def bmap(bounds=[-89, -83, 8, 14],
     
     if False:
         ax.add_image(cimgt.GoogleTiles(url=url), zoom)
+    
+    if not quickndirty:
+        ax.add_image(cimgt.GoogleTiles(url='https://server.arcgisonline.com/arcgis/rest/services/Ocean/World_Ocean_Base/MapServer/tile/{z}/{y}/{x}.jpg'), 8)
 
-    if False:
         ax.add_wms(wms='https://www.gebco.net/data_and_products/gebco_web_services/web_map_service/mapserv',
                 layers=['GEBCO_LATEST'],
                 alpha=1/3,
                 zorder=1
                 )
-        
     if False:
         # Create a Stamen Terrain instance.
         stamen_terrain = cimgt.Stamen('terrain-background')
