@@ -31,7 +31,7 @@ Import event data into a local data folder:
   stream=data.mseed  \
   inventory=inventory.xml
 ```
-Run evplot with eventid from `single_event.xml` e.g., `g`fz2019qmev`, creates plots in local data folder:
+Run evplot with eventid from `single_event.xml` e.g., `gfz2019qmev`, creates plots in local data folder:
 ```bash
 ./seismoviz evplot files="gfz2019qmev" 
 ```
