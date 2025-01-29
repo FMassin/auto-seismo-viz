@@ -945,7 +945,11 @@ def plot_focmech(event,lineauthors,ax,color='C1'):
                 if f[0]>360:
                     f-=180
                 delta = m.creation_info.creation_time - event.preferred_origin().time
-                alpha = (delta - min(creation_delays)) / (max(creation_delays) - min(creation_delays))
+                alpha = 1
+                try:
+                    alpha = (delta - min(creation_delays)) / (max(creation_delays) - min(creation_delays))
+                except:
+                    pass
                 #print(event.preferred_origin().time, m.creation_info.creation_time, event.magnitudes[0].creation_info.creation_time)
                 #print(delta, alpha, 1-alpha**.15)
                 #opts['alpha'] = 1-alpha**.2

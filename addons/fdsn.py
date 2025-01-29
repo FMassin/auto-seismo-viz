@@ -64,7 +64,7 @@ def event_data(catalog_uri='USGS',
         
         catalog = read_events(files[0])
         eventstreams = [{o:read(f%o) for o in ['raw','acc','vel','disp'] if os.path.exists(f%o) } for f in files[1::2] ]
-        eventinventories = [read_inventory(f) for f in files[2::2]]
+        eventinventories = [read_inventory(f).remove(channel="UTZ") for f in files[2::2]]
 
         return cleandata(catalog,eventstreams,eventinventories)
 
@@ -140,7 +140,7 @@ def event_data(catalog_uri='USGS',
         print('data/%s.quakeml'%shorteventid)
 
         ## Save event metadata
-        inventory.write('data/%s.stationxml'%shorteventid,
+        inventory.remove(channel="UTZ").write('data/%s.stationxml'%shorteventid,
                         format='STATIONXML')
         print('data/%s.stationxml'%shorteventid)
         

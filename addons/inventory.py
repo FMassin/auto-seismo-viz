@@ -352,6 +352,13 @@ def map_stations(self=Inventory([],''),
             if cap in instruments_markers:
                 stations_markers[k]=instruments_markers[cap]
     
+    #print(stations_longitudes)
+    #print(stations_latitudes)
+    #print(stations_sizes)
+    #print(stations_colors)
+    #print(stations_markers)
+    #print(stations_sizecaptions)
+     
     scatter6d(bmap,
               stations_longitudes,
               stations_latitudes,
@@ -366,14 +373,7 @@ def map_stations(self=Inventory([],''),
               zorder=97,
                             legend_sum=legend_sum
               )
-    
-    #print(stations_longitudes)
-    #print(stations_latitudes)
-    #print(stations_sizes)
-    #print(stations_colors)
-    #print(stations_markers)
-    #print(stations_sizecaptions)
-    
+   
     scatter6d(bmap,
               stations_longitudes,
               stations_latitudes,

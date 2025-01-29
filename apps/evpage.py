@@ -21,6 +21,7 @@ def qml2desc(file):
     
     prefMagId = None
     mag = None
+    time = None
 
     for child in root[0][0]:
         if 'preferredOriginID' in child.tag :
@@ -37,8 +38,12 @@ def qml2desc(file):
 
         if 'origin' in  child.tag and child.attrib['publicID'] == prefOrId:
             for granchild in child:
-                if 'time' in  granchild.tag :
-                    time = granchild[0].text
+                if 'time' in  granchild.tag  :
+                    try:
+                        time = granchild[0].text
+                    except:
+                        print('Cannot get time')
+                        print(granchild)
         
         if 'magnitude' in  child.tag and child.attrib['publicID'] == prefMagId:
             for granchild in child:
@@ -135,6 +140,7 @@ for id in ids:
         continue
     stations = list(set([f.split('/')[-1].split('.raw')[0] for f in glob("%s/%s/*.raw.png"%(argv[-1],id))]))
     
+    print(argv[-1], id)
     mag, time, agency = qml2desc( '%s/%s.quakeml' % ( argv[-1], id ))
 
     try:

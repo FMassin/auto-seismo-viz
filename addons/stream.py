@@ -159,16 +159,20 @@ def ploteqdata(self, #eqdata[output].select(channel='*b')
         if numpy.nanmax(tr.data) > 0 :
             imax=numpy.nanargmax(tr.data)
             tmax=numpy.nanmax([tmax, tr.times(type="utcdatetime")[imax]])
+            if not numpy.nanmax(tr.data)>0:
+                continue
             vmax+=[numpy.nanmax(tr.data)]
     for tr in self:
         prenoise = max([1, int(len(tr.data)*0.05)])
         if numpy.nanmax(tr.data[:prenoise]) > 0 :
+            if not numpy.nanmax(tr.data[:prenoise]) >0:
+                continue
             vmin+=[numpy.nanmax(tr.data[:prenoise])]
 
     vmin=numpy.nanpercentile(vmin,84)
     vmax=numpy.nanpercentile(vmax,100)*1.1
 
-    alldata = [data for tr in self for data in tr.data if data > 0]
+    alldata = [data for tr in self for data in tr.data if data > 0 and data < 99999]
     vmin=numpy.nanpercentile(alldata,30)
     vmax=numpy.nanpercentile(alldata,99.9)
 
