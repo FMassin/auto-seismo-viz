@@ -25,7 +25,7 @@ def legend_title(event,mtypes,
             mtypestr = mtype(m.magnitude_type)
             if a in aliases:
                 a = aliases[a]
-            if a not in leg_title: 
+            if a not in leg_title:
                 leg_title[a] = []
             if mtypestr not in leg_title[a]:
                 leg_title[a] += [mtypestr]
@@ -36,15 +36,15 @@ def legend_title(event,mtypes,
     for a in rename:
         if a[0] not in leg_title:
             leg_title[a[0]] = leg_title.pop(a[1])
-        else: 
-            leg_title[a[0]] += leg_title.pop(a[1])  
+        else:
+            leg_title[a[0]] += leg_title.pop(a[1])
     for a in leg_title:
         leg_title[a] = ', '.join(leg_title[a])
     if len(leg_title)>1 and split:
         leg_title = '\n'.join(['%s: %s'%(leg_title[a], a) for a in leg_title])
     elif split:
         a = list(leg_title.keys())[0]
-        leg_title = '%s:\n%s'%(a,leg_title[a]) 
+        leg_title = '%s:\n%s'%(a,leg_title[a])
     else:
         leg_title = '. '.join(['%s: %s'%(leg_title[a], a) for a in leg_title])
 
@@ -105,15 +105,15 @@ def distfilter(self=Catalog(),
         else:
             return Catalog(events=good)
 
-def get(self, lst, 
-        att=None, 
-        types=[] , 
-        full=False, 
-        pref=False, 
-        last=False, 
-        first=False, 
-        nan=True, 
-        ct=False, 
+def get(self, lst,
+        att=None,
+        types=[] ,
+        full=False,
+        pref=False,
+        last=False,
+        first=False,
+        nan=True,
+        ct=False,
         subatt=None):
     """
         1 use
@@ -667,14 +667,14 @@ def performance_timelines(event,
                 authors= [author]
                 print("New author list:",authors)
                 break
-            
+
     authors += addons.core.scfinderauthor(event.preferred_origin(),
                                           lineauthors=lineauthors)
     w,h=matplotlib.figure.figaspect(1.)
     f=matplotlib.pyplot.figure(figsize=(w*1.4,h*1.3))
     initaxes = f.subplots(5,1,sharex=True)
     axes = [initaxes[2], initaxes[1], initaxes[0], initaxes[3], initaxes[4]]
-        
+
     axesdata=[{'x':{},
                'y':{},
                'yep':{},
@@ -735,19 +735,19 @@ def performance_timelines(event,
     for m in magnitudes:
         if (m.magnitude_type in magnitude_types and
             m.creation_info.author.split('@')[0] in authors):
-            
-            
+
+
             for itmp,tmp in enumerate([preferred_magnitude, m]):
                 key = (tmp.magnitude_type,tmp.creation_info.author)
                 o=tmp.origin_id.get_referred_object()
-                
+
                 length = numpy.nan
                 strike = numpy.nan
                 likelihood = numpy.nan
                 update = numpy.nan
                 eew = numpy.nan
                 for c in tmp.comments:
-                    
+
                     if 'rupture-length' in str(c.resource_id).split('/')[-1]:
                         length = float(c.text)
                     elif 'rupture-strike' in str(c.resource_id).split('/')[-1]:
@@ -760,12 +760,12 @@ def performance_timelines(event,
                         eew = float(c.text)
                     else:
                         print(c)
-                
+
                 tmpeewdelay = [m.creation_info.creation_time-preferred_origin.time]
-                
+
                 if key not in axesdata[0]['x'].keys() and tmp.magnitude_type not in magnitude_types:
                     tmpeewdelay = list(numpy.linspace(int(preferred_origin.depth/1000/vs),tmpeewdelay[0],64))
-                    
+
                 for eewdelay in tmpeewdelay:
                     if key not in axesdata[0]['x'].keys():
                         axesdata[0]['x'][key]=[]
@@ -795,7 +795,7 @@ def performance_timelines(event,
                         mPG[key]=0
 
                     #############################################
-                        
+
                     axesdata[4]['x'][key].append(eewdelay)
                     axesdata[4]['y'][key].append(likelihood)
                     axesdata[4]['xeew'][key].append(eewdelay)
@@ -861,11 +861,11 @@ def performance_timelines(event,
                                                        station.latitude)
 
                                 distance = ((distance**2+(-station.elevation-o.depth)**2)**.5)/1000.
-                                            
+
                                 logPGcm = addons.core.ipe_allen2012_hyp(numpy.asarray([max([.1,eewdistance])]),
                                                                         numpy.asarray([tmp.mag]),
                                                                         )[0]
-                                          
+
                                 if distance >= (eewdelay-5)*vs and logPGcm>memlogPGcm:
                                     memlogPGcm=logPGcm
                                     eewdistance=distance
@@ -897,7 +897,7 @@ def performance_timelines(event,
                             if numpy.isnan(logPGcm[0]):
                                 print('WARNING: Nan PGA for %g = %g - %g'%(eewdistance-de,eewdistance,de))
                             axesdata[3]['yep'][key].append(logPGcm[0] - PG)
-                            
+
                             logPGcm = addons.core.ipe_allen2012_hyp(numpy.asarray([max([.1,abs(eewdistance+de)])]),
                                                                     numpy.asarray([tmp.mag-mag_errors_uncertainty]),
                                                                     )
@@ -920,7 +920,7 @@ def performance_timelines(event,
                         axesdata[2]['yem'][key]=[]
                         axesdata[2]['xeew'][key]=[]
                         axesdata[2]['yeew'][key]=[]
-                        
+
                     n = o.quality.used_phase_count #tmp.station_count
                     narr=n
                     if len(preferred_origin.arrivals)>0:
@@ -1001,7 +1001,7 @@ def performance_timelines(event,
                          color=color,
                          zorder=11,
                          label=data['label'][key])
-            
+
             axes[i].plot([data['xeew'][key][i] for i in indexes],
                          [data['yeew'][key][i] for i in indexes],
                          marker='o',
@@ -1011,10 +1011,10 @@ def performance_timelines(event,
                          zorder=15)
 
             axes[i].set_ylabel(data['ylabel'],fontsize='small')
-                      
+
             maxt=max([maxt,max(data['x'][key])])
             maxy=max([maxy,max(data['y'][key])])
-        
+
         axes[i].plot([numpy.nan],
                         [numpy.nan],
                         marker='o',
@@ -1023,11 +1023,11 @@ def performance_timelines(event,
                         color='0.7',
                         zorder=15,
                         label='EEW$_{(sent)}$')
-                        
+
         if i==2:
-            legend=axes[i].legend(title=legend_title(event,magnitude_types,split=False), 
+            legend=axes[i].legend(title=legend_title(event,magnitude_types,split=False),
                                   title_fontproperties={'size':'small',
-                                                        'weight':'bold'}, 
+                                                        'weight':'bold'},
                                   prop={'size': 'small'},
                                   ncol=3,
                                   loc='lower right',
@@ -1061,7 +1061,7 @@ def performance_timelines(event,
     y=[]
     ylim=axes[3].get_ylim()
 
-    axes[3].set_ylim(bottom=ylim[0])        
+    axes[3].set_ylim(bottom=ylim[0])
     for ax in axes:
         #ax.grid()
         ax.set_facecolor('w')
@@ -1070,9 +1070,9 @@ def performance_timelines(event,
                        which='both')
         ax.xaxis.set_minor_locator(matplotlib.ticker.AutoMinorLocator())
         ax.yaxis.set_minor_locator(matplotlib.ticker.AutoMinorLocator())
-        ax.grid(b=True, which='major', color='gray', linestyle='dashdot', zorder=-9999)
-        ax.grid(b=True, which='minor', color='beige',  ls='-', zorder=-9999)  
-        
+        ax.grid( which='major', color='gray', linestyle='dashdot', zorder=-9999) #b=True,
+        ax.grid( which='minor', color='beige',  ls='-', zorder=-9999) #b=True,
+
     for a in [2,1]:
         axes[a].set_yscale('log')
         lim=axes[a].get_ylim()
@@ -1081,14 +1081,14 @@ def performance_timelines(event,
         axes[a].set_ylim(lim)
         y_minor = matplotlib.ticker.LogLocator(base = 10.0, subs = numpy.arange(1.0, 10.0) * 0.1, numticks = 10)
         axes[a].yaxis.set_minor_locator(y_minor)
-        
+
     lim=axes[2].get_ylim()
     axes[2].set_yticks([4,6,10,100,1000])
     axes[2].set_yticklabels(["$^{_4}$","$^{_6}$",10,100,1000])
     axes[2].yaxis.set_minor_formatter('')
     axes[2].set_ylim([.91,max(lim)])
-    
-            
+
+
     lim=axes[3].get_ylim()
     axes[3].set_yticks([1,2,3,4,5,6,7,8,9,10,11,12])
     axes[3].set_yticklabels(['I','II','III','IV','V','VI','VII','VIII','IX','X','XI','XII'])
@@ -1124,7 +1124,7 @@ def performance_timelines(event,
     #print(xlim)
     axes[3].set_xlim([1,xlim+xlim/9])
     #axes[3].set_xlim(left=1)#,xlim])
-    
+
     descs = ', '.join([desc.text for desc in event.event_descriptions if 'region' in desc.type])
     t = '%s\nM$_{%s}$%.1f, %s, %.1fkm deep'
     tt=(str(event.preferred_origin().time)[:19],

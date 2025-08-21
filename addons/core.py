@@ -12,6 +12,8 @@ from addons.catalog import distfilter as catalog_distfilter
 from addons.inventory import map_stations
 from addons.inventory import distfilter as inventory_distfilter
 from addons.stream import get_velmodel_correction
+from addons.appdb import plot_event_data, plot_notification_delays,plot_report_hist
+
 gold= (1 + 5 ** 0.5) / 2.
 
 
@@ -75,15 +77,15 @@ def scfinderauthor(origin, lineauthors=None):
         print('WARNING: User defined',lineauthors)
         return lineauthors
     lineauthors = ['scfinder']
-    geocode = geocoder.osm([origin.latitude,
-                            origin.longitude],
-                           method='reverse').json
-    print("==============\ngeocode")
-    print(geocode)
+    #geocode = geocoder.osm([origin.latitude,
+    #                        origin.longitude],
+    #                       method='reverse').json
+    #print("==============\ngeocode")
+    #print(geocode)
 
-    if ( geocode is not None and
-         geocode['country'] in ['Schweiz/Suisse/Svizzera/Svizra','Switzerland','France','Osterreich']
-         ):
+    if origin.longitude > 3 and origin.longitude < 12 and origin.latitude > 45 and origin.latitude < 48 :#( geocode is not None and
+         #geocode['country'] in ['Schweiz/Suisse/Svizzera/Svizra','Switzerland','France','Osterreich']
+         #):
         if (0.39 * origin.longitude + 44)  < origin.latitude :
             lineauthors += ['scfdforela']
         else:
@@ -132,9 +134,36 @@ def plot_eewsourcepoints(event,
     indexes = numpy.argsort([m.creation_info.creation_time for m in magnitudes])
     magnitudes = [magnitudes[i] for i in indexes]
     alphanorm=(magnitudes[0].creation_info.creation_time - event.preferred_origin().time)
-    label='M$_{%s}$%.1f\n%.1fs'%(magnitudes[0].magnitude_type[1:],
-                                  magnitudes[0].mag,
-                                  magnitudes[0].creation_info.creation_time - event.preferred_origin().time)
+
+
+
+    eewmagnitudes=[]
+    eew = 1
+    for m in magnitudes:
+        for c in m.comments:
+            if str(c.resource_id)[-3:] == 'EEW':
+                eew = 0
+        
+    for m in magnitudes:
+
+        for c in m.comments:
+            if str(c.resource_id)[-3:] == 'EEW':
+                eew = int(c.text)
+        if not eew:
+            continue
+            
+        eewmagnitudes += [m]
+
+    indexes = numpy.argsort([m.creation_info.creation_time for m in eewmagnitudes])
+    eewmagnitudes = [eewmagnitudes[i] for i in indexes]
+
+
+    indexes = numpy.argsort([m.creation_info.creation_time for m in magnitudes])
+    magnitudes = [magnitudes[i] for i in indexes]
+
+    label='M$_{%s}$%.1f\n%.1fs'%(eewmagnitudes[0].magnitude_type[1:],
+                                  eewmagnitudes[0].mag,
+                                  eewmagnitudes[0].creation_info.creation_time - event.preferred_origin().time)
 
     for k,m in enumerate(magnitudes):
         alpha = m.creation_info.creation_time - event.preferred_origin().time
@@ -167,7 +196,7 @@ def plot_eewsourcelines(event,
 
     if event.preferred_magnitude() is None:
         event.preferred_magnitude = event.magnitudes[-1].resource_id.get_referred_object
-        
+
     magnitudes=[]
     for m in event.magnitudes:
         if (m.creation_info.author is not None and
@@ -177,12 +206,34 @@ def plot_eewsourcelines(event,
     if len(magnitudes)==0:
         print('WARNING: No source line found')
         return
+    
+
+    eewmagnitudes=[]
+    eew = 1
+    for m in magnitudes:
+        for c in m.comments:
+            if str(c.resource_id)[-3:] == 'EEW':
+                eew = 0
+        
+    for m in magnitudes:
+
+        for c in m.comments:
+            if str(c.resource_id)[-3:] == 'EEW':
+                eew = int(c.text)
+        if not eew:
+            continue
+            
+        eewmagnitudes += [m]
+
+    indexes = numpy.argsort([m.creation_info.creation_time for m in eewmagnitudes])
+    eewmagnitudes = [eewmagnitudes[i] for i in indexes]
+
     indexes = numpy.argsort([m.creation_info.creation_time for m in magnitudes])
     magnitudes = [magnitudes[i] for i in indexes]
     alphanorm =  (magnitudes[0].creation_info.creation_time - event.preferred_origin().time)
-    label='M$_{%s}$%.1f\n%.1fs'%(magnitudes[0].magnitude_type[1:],
-                                  magnitudes[0].mag,
-                                  magnitudes[0].creation_info.creation_time - event.preferred_origin().time)
+    label='M$_{%s}$%.1f\n%.1fs'%(eewmagnitudes[0].magnitude_type[1:],
+                                  eewmagnitudes[0].mag,
+                                  eewmagnitudes[0].creation_info.creation_time - event.preferred_origin().time)
     for k,m in enumerate(magnitudes):
         length=None
         for c in m.comments:
@@ -503,13 +554,18 @@ def nicemap(catalog=Catalog(),
                                     zorder=-999999,
                                         verbose= True
                                     )
-            except:
-                im2 = bmap.arcgisimage(service=service[i],
-                                    server=server[i],
-                                    dpi=dpi,
-                                    zorder=-999999,
-                                        verbose= True
-                                    )
+            except Exception as e:
+                print(e)
+                try:
+                    im2 = bmap.arcgisimage(service=service[i],
+                                        server=server[i],
+                                        dpi=dpi,
+                                        zorder=-999999,
+                                            verbose= True
+                                        )
+                except Exception as e:
+                    print(e)
+                    pass
             im2.set_alpha(alpha)
         if True:
             if dark:
@@ -759,6 +815,7 @@ def map_all(self=None,
                                        markers=markers,
                                        titletext=titletext,
                                        fontsize=fontsize,
+                                       mapbounds=mapbounds,
                                        stationgroups=stationgroups)
 
     if title:
@@ -876,15 +933,35 @@ def fixtissot(polygon,bmap,rad,lon):
     polygon.set_xy(newxy)
 
 def plot_focmech(event,lineauthors,ax,color='C1'):
-    pos = ax.get_position()
-    axins = ax.figure.add_axes([pos.x1-pos.width/6,
-                                pos.y1-pos.height/6,
-                                pos.width/3,pos.height/3],
-                         facecolor='None',
-                                   zorder=999,
-                                   frame_on=False)
-    axins.set_axis_off()
-    axins.set(xlim=(-50, 50), ylim=(-50, 50))
+
+    focmec = event.preferred_focal_mechanism()
+    if focmec is None:
+        #print(event)
+        return
+    
+    if False:
+        pos = ax.get_position()
+        axins = ax.figure.add_axes([pos.x1-pos.width/12+0.01,
+                                    pos.y1-pos.height/6,
+                                    pos.width/3,
+                                    pos.height/3],
+                                facecolor='None',
+                                zorder=999,
+                                frame_on=False)
+    else:
+        legend = ax.get_legend()
+
+        renderer = ax.figure.canvas.get_renderer()
+        bbox_display = legend.get_window_extent(renderer)  # Get legend bbox in figure (display) coordinates
+        bbox_axes = bbox_display.transformed(ax.transAxes.inverted())  # Convert to axis coordinates
+
+        # Extract legend position and size in axis coordinates
+        legend_x0, legend_y0 = bbox_axes.x0, bbox_axes.y0  # Bottom-left corner
+        legend_x1, legend_y1 = bbox_axes.x1, bbox_axes.y1  # Top-right corner
+        legend_width, legend_height = bbox_axes.width, bbox_axes.height
+
+        axins = ax.inset_axes([legend_x0, legend_y0-legend_width-0.02, legend_width, legend_width ])
+
     norm = matplotlib.pyplot.Normalize(-1., 1.)
     cmap = matplotlib.cm.get_cmap('bwr')
     opts= {'xy':(0, 0), 'width':50,
@@ -893,10 +970,6 @@ def plot_focmech(event,lineauthors,ax,color='C1'):
            #'linewidth':3,
            #'alpha':0.5
           }
-    focmec = event.preferred_focal_mechanism()
-    if focmec is None:
-        #print(event)
-        return
     fm = [focmec.nodal_planes.nodal_plane_1.strike,
               focmec.nodal_planes.nodal_plane_1.dip,
               focmec.nodal_planes.nodal_plane_1.rake]
@@ -915,9 +988,6 @@ def plot_focmech(event,lineauthors,ax,color='C1'):
         bball = beach(fm,**opts)
     axins.add_collection(bball)
 
-    axins.set(xlim=(-50, 50), ylim=(-50, 50))
-    #return
-
     opts['edgecolor']=color
     opts['facecolor']='none'#[,0,0,0]
     opts['bgcolor']='none'#[255,255,255,0]
@@ -934,7 +1004,14 @@ def plot_focmech(event,lineauthors,ax,color='C1'):
             if 'strike' in str(c.resource_id):
                 magnitudes+=[m]
                 break
+    
 
+    axins.plot([-35*.8,35*.8],
+                [-35*.8,35*.8],
+                alpha = 0)
+    
+    findertitle = ''
+    y2=None
     creation_delays=[m.creation_info.creation_time-event.preferred_origin().time for m in magnitudes]
     for m in magnitudes:
         for c  in m.comments:
@@ -985,10 +1062,22 @@ def plot_focmech(event,lineauthors,ax,color='C1'):
                            verticalalignment='center',
                            path_effects=path_effects
                            )
+    if y2 is not None:
+        findertitle = '&\nFinDer'
+    axins.margins(0)
+    axins.set_aspect("equal")
+    axins.set_axis_off()
+    legend = axins.legend([],[],
+                 frameon=False,
+                 labelspacing=-.2,
+                 loc="upper left", bbox_to_anchor=(-0.05, 0.05),
+                 title='Mt.%s'%(findertitle) ,
+                 title_fontproperties={'size':'xx-small',
+                                        'weight':'bold'})
+    legend.set_zorder(999999)
 
-    axins.set(xlim=(-50, 50), ylim=(-50, 50))
 
-def getradius(origin,inventory,maxdist=1.5):
+def getradius(origin,inventory,maxdist=150/110):
 
     minlatitude=origin.latitude
     maxlatitude=origin.latitude
@@ -1022,8 +1111,9 @@ def eewmap(data,
            lineauthors=None,
            stationgroups=None,
            mapbounds=True,
+           app_reports=None,
            **kwargs):
-
+    
     origin = data['event'].preferred_origin()
 
     if data['event'].preferred_magnitude() is None:
@@ -1033,10 +1123,10 @@ def eewmap(data,
     lineauthors = scfinderauthor(origin, lineauthors=lineauthors)
 
     radius = getradius(origin,data['inventory'])
-
+    
     possibledelaysteps=[1,2,5,10,20,50,100]
     delaystep=numpy.argmin( [ abs(s-radius/10/vs/1000) for s in possibledelaysteps])
-    delaystep=possibledelaysteps[delaystep]
+    delaystep=possibledelaysteps[delaystep+1]
 
     longitude_radius = 0
     km=0
@@ -1075,14 +1165,33 @@ def eewmap(data,
                         bmap=fig.bmap)
 
     magnitudes = []
+
+    eew = 1
     for m in data['event'].magnitudes:
+        for c in m.comments:
+            if str(c.resource_id)[-3:] == 'EEW':
+                eew = 0
+                
+       
+    for m in data['event'].magnitudes:
+        
+        for c in m.comments:
+            if str(c.resource_id)[-3:] == 'EEW':
+                eew = int(c.text)
+                
+        if not eew:
+            continue
+        
         if (m.creation_info.author is not None and
                 m.magnitude_type in ['Mfd', 'MVS'] and
                 m.creation_info.author.split('@')[0] in lineauthors + ['scvsmag']):
+            
             magnitudes += [m]
+            eew = 0
+    
     indexes = numpy.argsort([m.creation_info.creation_time for m in magnitudes])
     magnitudes = [magnitudes[i] for i in indexes]
-
+    
     deglatatlon = haversine(origin.longitude,
                                    origin.latitude-.5,
                                    origin.longitude,
@@ -1112,6 +1221,9 @@ def eewmap(data,
     #print(modtts, magnitudes[0].creation_info.creation_time - origin.time)
     dblind = fmodel(max([0.01, magnitudes[0].creation_info.creation_time - origin.time ]))
 
+    if not dblind > 0:
+        dblind=0
+
     polygon = fig.bmap.tissot(origin.longitude,
                     origin.latitude,
                     dblind / deglatatlon,
@@ -1127,13 +1239,13 @@ def eewmap(data,
     fixtissot(polygon,fig.bmap,dblind,origin.longitude)
 
     mmis=['I','II','III','IV','V','VI','VII','IIX','IIX','X','XI','XII']
-    mmii=-1
-    d=9999
     triald=numpy.arange(((radius*5/1000)**2*2)**.5/2)
     mmi = ipe_allen2012_hyp((triald**2+(origin.depth/1000)**2)**.5,
-                                                triald*0+magnitude.mag,
-                                                )
-    #print(mmi,triald)
+                            triald*0+magnitude.mag,
+                            )
+    print('=====================')
+    print('=====================')
+    print('M ref',magnitude.mag, 'Depth', origin.depth/1000)
     f = scipy.interpolate.interp1d(mmi,triald)
     minmaxmmi=[max([1,int(min(mmi))+1]), min([9,1+int(max(mmi))])]
     mmi = numpy.arange(*minmaxmmi)
@@ -1147,7 +1259,7 @@ def eewmap(data,
     for t in range(len(d)):
         label=None
         if t==0:
-            label='Final intensity'#+' '+' to '.join(list(set([refmmi[0],refmmi[-1]])))
+            label='Final intensity'
         polygon=fig.bmap.tissot(origin.longitude,
                         origin.latitude,
                         d[t] / deglatatlon,
@@ -1158,16 +1270,58 @@ def eewmap(data,
                         linewidth=2,
                         path_effects=[withStroke(linewidth=4,
                                                  foreground="white")])
-        fixtissot(polygon,fig.bmap,d[t],origin.longitude)
+        fixtissot(polygon,
+                  fig.bmap,
+                  d[t],
+                  origin.longitude)
+        
 
-        if t>0:
-            pass#continue
+        x, y = fig.bmap(origin.longitude,#+d[t]/deglonatlat*.7,
+                        origin.latitude+d[t]/deglatatlon#*.7
+                        )
+        fig.bmap.ax.annotate('$^{MMI}$%s'%refmmi[t], #$_{Intensity}$\n
+                             xy=(x, y),
+                             xycoords='data',
+                             xytext=(x, y),
+                             textcoords='data',
+                         horizontalalignment='right',
+                         verticalalignment='bottom',
+                         #rotation=-45,
+                         fontweight='bold',
+                         fontsize='x-small',
+                         color='k',
+                         clip_on=True,
+                         zorder=99999999,
+                        path_effects=[withStroke(linewidth=2,
+                                                 foreground="w")])
+    
+
+    mmis=['I','II','III','IV','V','VI','VII','IIX','IIX','X','XI','XII']
+    triald=numpy.arange(((radius*5/1000)**2*2)**.5/2)
+    mmi = ipe_allen2012_hyp((triald**2+(magnitudes[0].origin_id.get_referred_object().depth/1000)**2)**.5,
+                            triald*0+magnitudes[0].mag,
+                            )
+    print('M EEW',magnitudes[0].mag, 'Depth', magnitudes[0].origin_id.get_referred_object().depth/1000)
+    print('=====================')
+    print('=====================')
+    f = scipy.interpolate.interp1d(mmi,triald)
+    minmaxmmi=[max([1,int(min(mmi))+1]), min([9,1+int(max(mmi))])]
+    mmi = numpy.arange(*minmaxmmi)
+    mmis = numpy.asarray([mmis[i-1] for i in mmi])
+    #print(mmi)
+    triald = f(mmi)
+    eewmmi = mmis[triald>1]#(dblind/4)]
+    deew = triald[triald>1]
+
+    for t in range(len(deew)):
+        label=None
         if t==0:
             label='EEW intensity'
+
         #print(refmmi[t], d[t], deglatatlon)
         polygon=fig.bmap.tissot(magnitudes[0].origin_id.get_referred_object().longitude,
                         magnitudes[0].origin_id.get_referred_object().latitude,
-                        d[t] / deglatatlon,
+                        deew[t] / deglatatlon,
                         64,
                         fill=False,
                         edgecolor={'MVS':'C2','Mfd':'C1'}[magnitudes[0].magnitude_type],
@@ -1176,21 +1330,28 @@ def eewmap(data,
                         label=label,#'EEW MMI '+refmmi[t],
                         path_effects=[withStroke(linewidth=4,
                                                  foreground="w")])
-        fixtissot(polygon,fig.bmap,d[t],magnitudes[0].origin_id.get_referred_object().longitude)
-        x, y = fig.bmap(origin.longitude-d[t]/deglonatlat*.7,
-                        origin.latitude+d[t]/deglatatlon*.7)
-        fig.bmap.ax.annotate('%s\n$^{Intensity}$'%refmmi[t],
+        fixtissot(polygon,
+                  fig.bmap,
+                  deew[t],
+                  magnitudes[0].origin_id.get_referred_object().longitude)
+
+        x, y = fig.bmap(magnitudes[0].origin_id.get_referred_object().longitude,#+deew[t]/deglonatlat*.7,
+                        magnitudes[0].origin_id.get_referred_object().latitude+deew[t]/deglatatlon#*.7
+                        )
+        
+        fig.bmap.ax.annotate('%s'%eewmmi[t],
                              xy=(x, y),
                              xycoords='data',
                              xytext=(x, y),
                              textcoords='data',
-                         horizontalalignment='center',
-                         verticalalignment='center',
-                         rotation=45,
+                         horizontalalignment='right',
+                         verticalalignment='bottom',
+                         #rotation=-45,
                          fontweight='bold',
                          fontsize='x-small',
-                         color='k',
+                         color={'MVS':'C2','Mfd':'C1'}[magnitudes[0].magnitude_type],
                          clip_on=True,
+                         zorder=99999999,
                         path_effects=[withStroke(linewidth=2,
                                                  foreground="w")])
 
@@ -1213,29 +1374,48 @@ def eewmap(data,
                             lw=0.5,
                             path_effects=[matplotlib.patheffects.withStroke(linewidth=1.5,
                                                                             foreground="white")])
+            
             fixtissot(polygon,fig.bmap,dblind,origin.longitude)
-            x, y = fig.bmap(origin.longitude+dblind/deglonatlat*0.7,
-                            origin.latitude+dblind/deglatatlon*0.7)
-            fig.bmap.ax.annotate('%ds\n$^{EEW}$'%delay,
+            
+            x, y = fig.bmap(origin.longitude,#+dblind/deglonatlat*0.7,
+                            origin.latitude+dblind/deglatatlon#*0.7
+                            )
+            
+            fig.bmap.ax.annotate('%d${s}$'%delay, #\n$^{EEW}$
                                  xy=(x, y),
                                  xycoords='data',
                                  xytext=(x, y),
-                         clip_on=True,
+                                 clip_on=True,
                                  textcoords='data',
-                             horizontalalignment='center',
-                             verticalalignment='center',
-                     rotation=-45,
-                     fontsize='x-small',
-                     color='k',
-                    path_effects=[withStroke(linewidth=2,
+                                 horizontalalignment='left',
+                                 verticalalignment='center',
+                                 #rotation=-45,
+                                 fontsize='x-small',
+                                 color='k',
+                                 zorder=99999999,
+                                 path_effects=[withStroke(linewidth=2,
                                              foreground="w")])
 
+
+    if app_reports is not None:
+        fig.bmap.scatter([],[],
+                         s=10,
+                         marker='o',
+                         color='0.5',
+                         label='Notifications (%s)'%(len(app_reports[1])))
+        fig.bmap.scatter([],[],
+                         s=10,
+                         marker='o',
+                         label='Reports (%s)'%(len(app_reports[0])))
+    
     if legend:
+
         fig.bmap.ax.legend(ncol=1,
                            title=legend_title(data['event'],['Mfd', 'MVS']),
                            title_fontproperties={'size':'xx-small',
                                                  'weight':'bold'},
-                           bbox_to_anchor=(1,0), loc="lower left",
+                           bbox_to_anchor=(1,0.5), 
+                           loc="center left",
                            prop={'size': 'xx-small'})
     else:
         fig.bmap.ax.get_legend().remove()
@@ -1261,5 +1441,13 @@ def eewmap(data,
     #print(m)
 
     plot_focmech(data['event'],lineauthors,fig.bmap.ax)
+
+    if app_reports is not None:
+
+        plot_event_data(app_reports,fig.bmap)
+
+        plot_notification_delays(app_reports,fig.bmap)
+
+        plot_report_hist(app_reports,fig.bmap)
 
     return fig

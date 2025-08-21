@@ -1,19 +1,30 @@
 #!/usr/bin/env python
+
 from glob import glob
-from addons.bmap import bmap
-from cartopy.crs import Geodetic
+from os.path import splitext
+import numpy as np
+
 from matplotlib.animation import FuncAnimation, writers
 from matplotlib.colors import LogNorm
-import numpy as np
+from matplotlib.pyplot import get_cmap
+from matplotlib.ticker import EngFormatter
+
+from cartopy.crs import Geodetic
+
 from obspy import UTCDateTime
-from os.path import splitext
 from obspy import read_events
+
+from addons.bmap import bmap
+
+
+
 
 def main(folder = '/Users/fred/Documents/Projects/Collaborations/Song/04032358_Hualien_Eathquake/1712102298',
          begin = '2024-04-02T23:58:18.34',
-         output = "data/Hualien.doesnotmatter",
-         catalog = "/Users/fred/Documents/Projects/NaiNo-Kami/auto-seismo-viz/exports/CWA2024gnxs.xml",
+         output = "data/CWA2024gnxs.doesnotmatter",
+         catalog = "/Users/fred/Documents/Projects/NaiNo-Kami/auto-seismo-viz/data/CWA2024gnxs.quakeml",
          quickndirty = False,
+         cmap='nipy_spectral',
          **args):
     # read peak ground motion data from files and write to animation.mp4
 
@@ -28,7 +39,7 @@ def main(folder = '/Users/fred/Documents/Projects/Collaborations/Song/04032358_H
         mcts = [m.creation_info.creation_time for m in catalog[0].magnitudes]
         preferred_mag = catalog[0].magnitudes[np.argmax(mcts)]
 
-    mags = [ m for m in catalog[0].magnitudes if m.magnitude_type == 'Mfd'  ]
+    mags = [ m for m in catalog[0].magnitudes if m.magnitude_type == 'Mfd' and m.mag > -1.0 ] # ignore SM origins
 
 
     output = splitext(output)[0]
@@ -57,9 +68,9 @@ def main(folder = '/Users/fred/Documents/Projects/Collaborations/Song/04032358_H
     lat = [float(l[0]) for k in dataset for l in dataset[k]]
     c = [float(l[4])/100 for k in dataset for l in dataset[k]]
 
-    ax = bmap(bounds=[np.percentile(lon,2), 
-                      np.percentile(lon,98), 
-                      np.percentile(lat,2), 
+    ax = bmap(bounds=[np.percentile(lon,5), 
+                      np.percentile(lon,90), 
+                      np.percentile(lat,5), 
                       np.percentile(lat,98)],
               right=False,
               left=True,
@@ -84,19 +95,27 @@ def main(folder = '/Users/fred/Documents/Projects/Collaborations/Song/04032358_H
 
     lm = ax.scatter([None,None],[None,None],s=[5,20], c='k',
                     linewidths=2,
-                    transform=Geodetic(),
-                    norm=LogNorm(vmin=np.percentile(c,5), vmax=max(c)))   
+                    transform=Geodetic())   
     
     ref.set_zorder(lm.get_zorder())
     fd.set_zorder(lm.get_zorder())
     
     ln = ax.scatter([None,None],[None,None],s=[5,20], c=[None,None],
                     transform=Geodetic(),
+                    cmap=get_cmap(cmap),
                     norm=LogNorm(vmin=np.percentile(c,5), vmax=max(c)))    
     
     cax = ax.inset_axes([1.03, 0.3, 0.05, 0.68])
+    
     cb = ax.figure.colorbar(ln,cax=cax)
-    cb.set_label(r'Peak ground acceleration ($m/s^2$)')
+
+    formatter1 = EngFormatter(unit='m/s$^2$',
+                              places=0, 
+                              sep="\N{THIN SPACE}",
+                              usetex=True)  # U+2009
+    cb.ax.yaxis.set_major_formatter(formatter1)
+
+    cb.ax.set_title('Peak\nground\nacceleration',loc='left',fontsize="small")
 
     def dt2s(dt,st):
         if dt < -1 :
@@ -114,15 +133,16 @@ def main(folder = '/Users/fred/Documents/Projects/Collaborations/Song/04032358_H
               func=lambda s: s2dt(s))
     ax.legend(*ln.legend_elements(**kw),
               loc='lower left', bbox_to_anchor=(1, 0),#loc="lower right", 
-              title="Delay", fontsize="small")
+              title="Delay PGA", fontsize="small")
 
+    ax.set_title(f'FinDer #none\nNone',loc='left')
 
     def update(frame,ln,lm,fd):
         reftime = UTCDateTime('1970-01-01T00:00:00')
         lon = [float(l[1]) for l in dataset[frame]]
         lat = [float(l[0]) for l in dataset[frame]]
         c = [float(l[4])/100 for l in dataset[frame]]
-        s = [dt2s(datatimes[frame]-(reftime+int(l[3])),l[2]) for l in dataset[frame]]
+        s = [dt2s(datatimes[frame]-(reftime+int(float(l[3]))),l[2]) for l in dataset[frame]]
         
         order = np.argsort(c)
         lon = [lon[i] for i in order]
@@ -140,18 +160,34 @@ def main(folder = '/Users/fred/Documents/Projects/Collaborations/Song/04032358_H
             fd.set_data(o.longitude, o.latitude)            
             fd.set_markersize(int(25*datafd[frame].mag/preferred_mag.mag))
 
-        time = str(datatimes[frame])[:19]
-        ax.set_title(f'FinDer #{frame}\n{time}')
+            time = str(datatimes[frame])[:19]
+            delay = datatimes[frame] - preferred_mag.origin_id.get_referred_object().time
+            magval = datafd[frame].mag
+            
+            ax.set_title(f'FinDer #{frame}: Mfd {magval:.1f} @ Ot+{delay:.1f} s\n{time}',loc='left')
+        else:
+            print(f'Frame {frame} has no magnitude?!')
 
         #ax.relim()
         #ax.autoscale_view()
         return ln,
 
-    ani = FuncAnimation(ax.figure, update, 
-                        frames=range(len(list(dataset.keys()))), 
-                        fargs=[ln,lm,fd],
-                        blit=True)
+    saveopt = {'dpi':512,
+               'facecolor':'none',
+               'transparent':False}
     
-    # Save the animation as a movie
-    writer = writers['ffmpeg'](fps=1)  # Adjust fps to control the speed of the video
-    ani.save(f'{output}.mp4', writer=writer)
+    ax.figure.tight_layout()
+    ax.figure.savefig(f'{output}_datanim.png',bbox_inches='tight',**saveopt)
+
+    if True:
+        ani = FuncAnimation(ax.figure, update, 
+                            frames=range(len(list(dataset.keys()))), 
+                            fargs=[ln,lm,fd],
+                            blit=True)
+        # Save the animation as a movie
+        writer = writers['ffmpeg'](fps=1)  # Adjust fps to control the speed of the video
+        ani.save(f'{output}_datanim.mp4', writer=writer)
+
+    ax.figure.savefig(f'{output}_datanim.png',bbox_inches='tight',**saveopt)
+    
+    

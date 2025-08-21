@@ -1,5 +1,6 @@
 #!/usr/bin/env python
-import imp,obspy,numpy
+import importlib as imp
+import obspy,numpy
 import matplotlib,matplotlib.animation
 import obspy.signal.freqattributes,scipy.interpolate
 from IPython.display import HTML

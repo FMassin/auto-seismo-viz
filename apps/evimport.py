@@ -84,6 +84,21 @@ def main(catalog=None,
             eventstreams += [{'raw':stream,'acc':acc,'vel':vel,'disp':disp}]
             eventinventories += [inventory]
 
+        elif (accenv:=stream.select(location='EA')):
+
+            print('This mseed has been preprocessed by sceewenv (it will be missing single vertical stations)')
+
+            for l in ['EA','EV','ED','PA','PV','PD']:
+                for tr in stream.select(location=l):
+                    stream.remove(tr)  
+
+            accenv += stream.select(channel='HG*')
+            accenv += stream.select(channel='HN*')
+            accenv += stream.select(channel='SN*')
+            accenv += stream.select(channel='EN*')
+
+            eventstreams += [{'raw':None,'acc':accenv,'vel':None,'disp':None}]
+            eventinventories += [inventory]
         else:
             print('Correcting mseed')
 
@@ -140,7 +155,10 @@ def main(catalog=None,
         
         ## Save event seismic data
         for output, stream in streams.items():
+            if stream is None:
+                continue
             # {'raw': ..., 'acc': ...,'vel': ..., 'disp': ...}
+            print(output,stream)
             stream.write('data/%s.%s.mseed'%(shorteventid,
                                              output),
                          format='mseed')

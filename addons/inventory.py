@@ -6,7 +6,7 @@ import addons.core
 
 def get_best_instrument(self,
                         instruments_markers,
-                        preforder=['HG','HN','HH','EN','SN','BH','EH','SH'],
+                        preforder=['HG','HN','HH','EN','SN','BH','EH','SH','HL'],
                         rank=-1):
 
     channels = self.get_contents()['channels']
@@ -244,13 +244,13 @@ def map_stations(self=Inventory([],''),
                  titletext='',
                  markersize=30,
                  fontsize=8,
-                 instruments_markers= {'SP':'<','SH':'<', 'EH':'<',
+                 instruments_markers= {'SP':'<','SH':'<', 'EH':'<','HL':'v',
                                        'BB':'v','BB-SP':'v','SP-BB':'v','HH':'v', 'BH':'v',
                                        'SM':'^','SM-SP':'^','SP-SM':'^','BB-SM':'^','SM-BB':'^',
                                        'HG':'^',   'HN':'^',   'EN':'^',   'SN':'^',
                                        'none':'*'},
                  instruments_captions={'SH':'SP','EH':'SP',
-                                       'BH':'BB','HH':'BB',
+                                       'BH':'BB','HH':'BB','HL':'BB',
                                        'HG':'SM','HN':'SM','EN':'SM','SN':'SM',
                                        'none':'Other'},
                  orientations_markers={'N':'^','2':'s','Z':'P','none':'*'},
@@ -266,7 +266,8 @@ def map_stations(self=Inventory([],''),
                  filled_markers = ('^', 'v', '<', '>', '8', 's', 'p', '*', 'h', 'H', 'D', 'd', 'P', 'X','o'),
                  dateintitle=False,
                  stationintitle=False,
-                 legend_sum=True
+                 legend_sum=True,
+                 mapbounds=None
                 ):
 
     stations_longitudes, stations_latitudes = addons.core.search(self,
@@ -352,7 +353,45 @@ def map_stations(self=Inventory([],''),
             if cap in instruments_markers:
                 stations_markers[k]=instruments_markers[cap]
     
-    #print(stations_longitudes)
+    
+    if mapbounds is not None:
+        print('all stations:',len(stations_longitudes))
+
+        stations_longitudes = numpy.asarray(stations_longitudes)
+        stations_latitudes = numpy.asarray(stations_latitudes)
+        stations_sizes = numpy.asarray(stations_sizes)
+        stations_colors = numpy.asarray(stations_colors)
+        stations_markers = numpy.asarray(stations_markers)
+        stations_sizecaptions = numpy.asarray(stations_sizecaptions)
+        stations_markercaptions = numpy.asarray(stations_markercaptions)
+        stations_colorcaptions = numpy.asarray(stations_colorcaptions)
+        if False:
+            if markers is not None:
+                markers = numpy.asarray(markers)
+            if sizes is not None:
+                colors = numpy.asarray(colors)
+            if sizes is not None:
+                sizes = numpy.asarray(sizes)
+
+        mask = (stations_longitudes>=min(mapbounds[0])) * (stations_longitudes<=max(mapbounds[0])) * (stations_latitudes>=min(mapbounds[1])) * (stations_latitudes<=max(mapbounds[1]))
+
+        stations_longitudes = list(stations_longitudes[mask])
+        stations_latitudes = list(stations_latitudes[mask])
+        stations_sizes = list(stations_sizes[mask])
+        stations_colors = list(stations_colors[:len(mask)][mask])
+        stations_markers = list(stations_markers[mask])
+        stations_sizecaptions = list(stations_sizecaptions[mask])
+        stations_markercaptions = list(stations_markercaptions[mask])
+        stations_colorcaptions = list(stations_colorcaptions[mask])
+        if False:
+            if markers is not None:
+                markers = list(markers[mask])
+            if colors is not None:
+                colors = list(colors[mask])
+            if sizes is not None:
+                sizes = list(sizes[mask])
+        print('Filtered stations:',len(stations_longitudes))
+
     #print(stations_latitudes)
     #print(stations_sizes)
     #print(stations_colors)

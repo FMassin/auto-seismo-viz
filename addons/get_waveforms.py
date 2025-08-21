@@ -376,10 +376,10 @@ def clean_inventorystream(inventory,stream,cleaninv=False):
             inventory = tmp
 
     
-    print('Stream left:')
-    print(stream)
-    print('Inventory left:')
-    print(inventory)
+    #print('Stream left:')
+    #print(stream)
+    #print('Inventory left:')
+    #print(inventory)
     
     return inventory,stream
 
@@ -414,24 +414,6 @@ def get_events_waveforms(self,
     eventstreams=[]
     eventinventories=[]
     for event in catalog:        
-
-        if False: # Load files if available
-            if 'xml' not in files and 'mseed' not in files:
-                files='data/%s.quakeml,data/%s.%s.mseed,data/%s.stationxml'(files,files,'%s',files)
-
-            if isinstance(files,str):
-                files=files.split(',')
-
-            from obspy import read_events, read_inventory, read
-            
-            if debug:
-                print('Expecting files=<Ev. catalog>,<ev#1 stream (%s for "raw" and "acc")>,<ev#1 inventory>,<ev#2 stream>,<ev#2 inventory>...')
-            
-            catalog = read_events(files[0])
-            eventstreams = [{o:read(f%o) for o in ['raw','acc','vel','disp'] if os.path.exists(f%o) } for f in files[1::2] ]
-            eventinventories = [read_inventory(f) for f in files[2::2]]
-
-            return cleandata(catalog,eventstreams,eventinventories)
 
         origin = event.preferred_origin()
 

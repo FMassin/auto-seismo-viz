@@ -131,7 +131,7 @@ def ploteqdata(self, #eqdata[output].select(channel='*b')
                lim=160,
                combine='both',
                nopgalabel=False,
-               nostationlabel=False,
+               nostationlabel=True,
                ):
     if ax is None:
         w, h = matplotlib.figure.figaspect(gold) # gold aspect
@@ -348,9 +348,9 @@ def ploteqdata(self, #eqdata[output].select(channel='*b')
     ax.set_xlim(ax.get_xlim())
     ealiest={}
     for m in event.magnitudes:
-        mdt = m.creation_info.creation_time - event.preferred_origin().time
         if m.magnitude_type not in mtypes:
             continue
+        mdt = m.creation_info.creation_time - event.preferred_origin().time
         if mdt<0 or mdt>max(ax.get_xlim()) :
             continue
         ax.axvline(mdt,
@@ -476,7 +476,8 @@ def ploteqdata(self, #eqdata[output].select(channel='*b')
               title=legend_title(event,mtypes),
               title_fontproperties={'size':'small',
                                     'weight':'bold'},
-              loc=2,
+              bbox_to_anchor=(1, .95),
+              loc='upper right',
               labelspacing=-.2)
     #ax.set_xlim(right=77)
     return ax.figure
